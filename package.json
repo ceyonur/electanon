@@ -1,16 +1,33 @@
 {
-  "name": "hardhat-project",
-  "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.1",
-    "@nomiclabs/hardhat-waffle": "^2.0.1",
-    "chai": "^4.2.0",
-    "ethereum-waffle": "^3.2.1",
-    "ethers": "^5.0.24",
-    "hardhat": "^2.0.6",
-    "prettier": "^2.2.1",
-    "prettier-plugin-solidity": "^1.0.0-beta.2"
+  "name": "gentract",
+  "version": "1.0.0",
+  "description": "Genesis Smart Contract",
+  "directories": {
+    "test": "test"
   },
+  "scripts": {
+    "test": "truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ceyonur/gentract.git"
+  },
+  "author": "Ceyhun Onur",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ceyonur/gentract/issues"
+  },
+  "homepage": "https://github.com/ceyonur/gentract#readme",
   "dependencies": {
-    "@openzeppelin/contracts": "^3.3.0"
+    "@openzeppelin/contracts": "^3.3.0",
+    "@poanet/solidity-flattener": "^3.0.6",
+    "chai-as-promised": "^7.1.1",
+    "prettier": "^2.2.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.3",
+    "truffle": "^5.1.60"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^8.2.1"
   }
 }

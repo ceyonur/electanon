@@ -1,24 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.0;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract Gentract is AccessControl, Pausable {
-    string public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+contract Gentract is AccessControl {
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-    event Suggestion(address indexed _from, string _value);
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    uint256 public constant REQUIRED_PERCENTAGE = 75;
 
-    struct GenesisProposal {
-        string value; // short name (up to 32 bytes)
-        uint256 voteCount; // number of accumulated votes
-    }
+    event ManagerApprovalRequest(
+        address indexed _from,
+        address _account
+    );
+    event ManagerApproved(
+        address indexed _from,
+        address _account
+    );
 
-    string public platform;
-    Proposal public proposedGenesis;
-    mapping(address => string) public platformAddresses;
-    string public genesis;
+    mapping(address => EnumerableSet.AddressSet) managerApprovalQueue;
 
     modifier onlyManager {
         require(
@@ -29,39 +30,49 @@ contract Gentract is AccessControl, Pausable {
     }
 
     constructor(address[] memory managers) public {
+        _setupRole(MANAGER_ROLE, msg.sender);
         for (uint256 i = 0; i < managers.length; i++) {
             _setupRole(MANAGER_ROLE, managers[i]);
         }
-        _unpause();
+
     }
 
-    function registerPlatformAddress(string memory platformAddress)
-        public
-        onlyManager
-    {
-        platformAddresses[msg.sender] = platformAddress;
+    function isManager(address account) public view returns(bool){
+        return hasRole(MANAGER_ROLE, account);
     }
 
-    function suggestGenesis(string memory proposal)
-        public
-        onlyManager
-        whenNotPaused
-    {
-        _pause();
-        proposedGenesis = proposal;
-        emit Suggestion(msg.sender, proposedGenesis);
+    function requestManagerApproval(address account) public onlyManager returns(bool){
+        require(!hasRole(MANAGER_ROLE, account), "Account is a manager!");
+        require(managerApprovalQueue[account].length() == 0, "Account is already in queue!");
+        if (managerApprovalQueue[account].add(msg.sender) == true) {
+            emit ManagerApprovalRequest(msg.sender, account);
+            return true;
+        }
+        return false;
     }
 
-    function vote(uint256 proposal) public onlyManager whenPaused {
-        Voter storage sender = voters[msg.sender];
-        require(sender.weight != 0, "Has no right to vote");
-        require(!sender.voted, "Already voted.");
-        sender.voted = true;
-        sender.vote = proposal;
-
-        // If `proposal` is out of the range of the array,
-        // this will throw automatically and revert all
-        // changes.
-        proposals[proposal].voteCount += sender.weight;
+    function approveManager(address account) public onlyManager returns(bool) {
+        require(managerApprovalQueue[account].length() > 0, "Account is not in queue!");
+        require(!managerApprovalQueue[account].contains(msg.sender), "Sender already confirmed this account!");
+        if (managerApprovalQueue[account].add(msg.sender) == true) {
+            emit ManagerApproved(msg.sender, account);
+            if(managerApprovalQueue[account].length() > getRoleMemberCount(MANAGER_ROLE) * REQUIRED_PERCENTAGE / 100){
+                _setupRole(MANAGER_ROLE, account);
+                delete managerApprovalQueue[account];
+            }
+            return true;
+        }
+        return false;
     }
+
+    function approvalStatus(address account) public view returns(address[] memory){
+        address[] memory addrs = new address[](managerApprovalQueue[account].length());
+
+        for (uint i = 0; i < managerApprovalQueue[account].length(); i++) {
+            address accountAddress = managerApprovalQueue[account].at(i);
+            addrs[i] = accountAddress;
+        }
+        return addrs;
+    }
+
 }
