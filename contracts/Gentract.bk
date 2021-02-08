@@ -1,0 +1,170 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.0;
+
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+
+contract Gentract is AccessControl, Pausable {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    string public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    int256 public constant REQUIRED_PERCENTAGE = 75;
+
+    event Proposal(address indexed _from, string _value);
+    event PlatformAddressRegistration(
+        address indexed _from,
+        string _platformAddress
+    );
+    event ManagerApprovalRequest(
+        address indexed _from,
+        address _account
+    );
+    event ManagerApproved(
+        address indexed _from,
+        address _account
+    );
+
+    enum States {Registration, Proposal, Voting, Completed}
+    struct Voter {
+        uint256 weight; // weight is accumulated by delegation
+        bool voted; // if true, that person already voted
+        uint256 vote; // index of the voted proposal
+    }
+    struct GenesisProposal {
+        address proposer;
+        string platform;
+        string genesis;
+        uint256 voteCount; // number of accumulated votes
+    }
+
+    // This declares a state variable that
+    // stores a `Voter` struct for each possible address.
+    mapping(address => Voter) public voters;
+
+    mapping(address => string) public platformAddresses;
+    address[] registeredAddresses;
+
+    // Add the library methods
+
+    mapping(address => EnumerableSet.AddressSet) public managerApprovalQueue;
+
+    // A dynamically-sized array of `Proposal` structs.
+    GenesisProposal[] public proposals;
+
+    modifier onlyManager {
+        require(
+            hasRole(MANAGER_ROLE, msg.sender),
+            "Only managers can call this function"
+        );
+        _;
+    }
+
+    modifier hasAllPlatformAddresses {
+        require(
+            getRoleMemberCount(MANAGER_ROLE) ==
+                registeredAddresses.length,
+            "Not all members has a registered platform address"
+        );
+        _;
+    }
+
+    modifier notAlreadyProposed {
+        require(
+            getRoleMemberCount(MANAGER_ROLE) ==
+                registeredAddresses.length,
+            "Not all members has a registered platform address"
+        );
+        _;
+    }
+
+    constructor(address[] memory managers) public {
+        _setupRole(MANAGER_ROLE, msg.sender);
+        for (uint256 i = 0; i < managers.length; i++) {
+            _setupRole(MANAGER_ROLE, managers);
+        }
+
+    }
+
+    function requestManagerApproval(address account) public onlyManager {
+        require(!hasRole(MANAGER_ROLE, account), "Account is a manager!");
+        require(managerApprovalQueue[account].length == 0, "Account is already in queue!");
+        if (managerApprovalQueue[account].add(msg.sender) == true) {
+            emit ManagerApprovalRequest(msg.sender, account);
+            return true;
+        }
+        return false;
+    }
+
+    function confirmManager(address account) public onlyManager {
+        require(managerApprovalQueue[account].length > 0, "Account is not in queue!");
+        require(!managerApprovalQueue[account].contains(msg.sender), "Sender already confirmed this account!");
+        if (managerApprovalQueue[account].add(msg.sender) == true) {
+            emit ManagerApproved(msg.sender, account);
+            if(managerApprovalQueue[account].length > getRoleMemberCount(MANAGER_ROLE) * REQUIRED_PERCENTAGE / 100){
+                _setupRole(MANAGER_ROLE, account);
+                delete managerApprovalQueue[account];
+            }
+            return true;
+        }
+        return false;
+
+    }
+
+    function registerPlatformAddress(string memory platformAddress)
+        public
+        onlyManager
+        whenNotPaused
+    {
+        platformAddresses[msg.sender] = platformAddress;
+        registeredAddresses.push(msg.sender);
+        emit PlatformAddressRegistration(msg.sender, platformAddress);
+    }
+
+    function proposeGenesis(
+        string memory platformProposal,
+        string memory genesisProposal
+    )
+        public
+        onlyManager
+        whenNotPaused
+        hasAllPlatformAddresses
+        notAlreadyProposed
+    {
+        _pause();
+        GenesisProposal proposedGenesis =
+            GenesisProposal({
+                platform: platformProposal,
+                genesis: genesisProposal,
+                voteCount: 0
+            });
+        proposals.push(proposedGenesis);
+        emit Proposal(msg.sender, proposedGenesis);
+    }
+
+    function vote(uint256 proposal) public onlyManager whenPaused {
+        Voter storage sender = voters[msg.sender];
+        require(!sender.voted, "Already voted.");
+        sender.voted = true;
+        sender.vote = proposal;
+
+        // If `proposal` is out of the range of the array,
+        // this will throw automatically and revert all
+        // changes.
+        proposals[proposal].voteCount += 1;
+        if (
+            (proposals[proposal].voteCount / getRoleMemberCount(MANAGER_ROLE)) *
+                100 >
+            REQUIRED_PERCENTAGE
+        ) {}
+    }
+
+    function winningProposal() public view returns (uint256 winningProposal_) {
+        uint256 winningVoteCount = 0;
+        for (uint256 p = 0; p < proposals.length; p++) {
+            if (proposals[p].voteCount > winningVoteCount) {
+                winningVoteCount = proposals[p].voteCount;
+                winningProposal_ = p;
+            }
+        }
+    }
+}
