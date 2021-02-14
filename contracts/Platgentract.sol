@@ -2,13 +2,11 @@
 pragma solidity 0.7.6;
 
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./utils/Stoppable.sol";
+import "hardhat/console.sol";
 
-contract Platgentract is AccessControl, Stoppable {
+contract Platgentract is AccessControl {
     using EnumerableSet for EnumerableSet.UintSet;
-    using Counters for Counters.Counter;
 
     event Proposed(address indexed _from, uint256 indexed _id);
     event StateChanged(States indexed _from, States indexed _to);
@@ -23,18 +21,21 @@ contract Platgentract is AccessControl, Stoppable {
     uint256 public constant MAX_PROPOSAL_CAP = 40;
 
     States state;
-    Counters.Counter private proposalIdCt;
+    uint256 proposalIdCt = 0;
     EnumerableSet.UintSet private proposalIds;
     uint256 public proposalDeadline;
 
     uint256 maxProposalCount;
-    mapping(address => uint256) proposerMap;
+    mapping(address => bool) proposerMap;
+    mapping(bytes32 => bool) platformMap;
+
     mapping(uint256 => Proposal) proposals;
 
     uint256 public votingDeadline;
     uint256 public votingLifetime;
 
     mapping(address => bool) voters;
+    uint256 voterCount = 0;
     mapping(bytes32 => uint256) rankVotes;
     mapping(bytes32 => uint256[]) voteDict;
     bytes32[] voteHashes;
@@ -56,7 +57,7 @@ contract Platgentract is AccessControl, Stoppable {
     }
 
     modifier notAlreadyProposed {
-        require(proposerMap[msg.sender] == 0, "You already proposed!");
+        require(proposerMap[msg.sender] == false, "You already proposed!");
         _;
     }
 
@@ -67,6 +68,11 @@ contract Platgentract is AccessControl, Stoppable {
 
     modifier atState(States _state) {
         require(state == _state, "Function cannot be called at this time.");
+        _;
+    }
+
+    modifier atCompletedState() {
+        require(isCompletedState(), "Function cannot be called at this time.");
         _;
     }
 
@@ -108,6 +114,7 @@ contract Platgentract is AccessControl, Stoppable {
         state = _state;
     }
 
+    //TODO: should not change if not enough proposals
     function toVotingState() internal {
         toState(States.Voting);
         votingDeadline = block.timestamp + votingLifetime;
@@ -126,13 +133,19 @@ contract Platgentract is AccessControl, Stoppable {
         atState(States.Proposal)
         notAlreadyProposed
     {
-        proposalIdCt.increment();
-        uint256 newId = proposalIdCt.current();
+        require(
+            platformMap[keccak256(abi.encode(_platform))] == false,
+            "Platform is already proposed"
+        );
+
+        proposalIdCt++;
+        uint256 newId = proposalIdCt;
         require(newId > 0);
         Proposal storage p = proposals[newId];
         p.proposer = msg.sender;
         p.platform = _platform;
-        proposerMap[msg.sender] = newId;
+        proposerMap[msg.sender] = true;
+        platformMap[keccak256(abi.encode(_platform))] = true;
         proposalIds.add(newId);
         emit Proposed(msg.sender, newId);
 
@@ -152,7 +165,7 @@ contract Platgentract is AccessControl, Stoppable {
             votedIds.length == proposalIds.length(),
             "You need to include every proposal id in your voting"
         );
-        bool[] memory set = new bool[](proposalIdCt.current());
+        bool[] memory set = new bool[](proposalIdCt + 1);
         for (uint256 i = 0; i < votedIds.length; i++) {
             uint256 votedId = votedIds[i];
             require(
@@ -164,31 +177,52 @@ contract Platgentract is AccessControl, Stoppable {
         }
         bytes32 key = keccak256(abi.encode(votedIds));
         rankVotes[key] += 1;
-        voteHashes.push(key);
+        if (voteDict[key].length == 0) {
+            voteHashes.push(key);
+        }
         voteDict[key] = votedIds;
         voters[msg.sender] = true;
+        voterCount++;
+        if (voterCount == memberCount()) {
+            toCompletedState();
+        }
     }
 
     /* solhint-disable */
     //https://math.libretexts.org/Bookshelves/Applied_Mathematics/Book%3A_College_Mathematics_for_Everyday_Life_(Inigo_et_al)
     //https://en.wikipedia.org/wiki/Ranked_pairs
     /* solhint-enable */
-    function electionResult() public view atState(States.Completed) {
+    function electionResult() external view returns (uint256) {
         bool[][] memory locked = _getLockedPairs();
-        uint256[] memory result;
         for (uint256 i = 0; i < proposalIds.length(); i++) {
+            bool source = true;
             for (uint256 j = 0; j < proposalIds.length(); j++) {
-                if (!locked[i][j]) {
-                    continue;
-                } else {
+                uint256 a = proposalIds.at(i);
+                uint256 b = proposalIds.at(j);
+
+                if (locked[b][a]) {
+                    source = false;
                     break;
                 }
+            }
+            if (source) {
+                return proposalIds.at(i);
             }
         }
     }
 
+    function isManager(address account) public view returns (bool) {
+        return hasRole(MANAGER_ROLE, account);
+    }
+
+    function currentState() external view returns (string memory) {
+        if (state == States.Proposal) return "Proposal";
+        if (state == States.Voting) return "Voting";
+        if (isCompletedState()) return "Completed";
+    }
+
     function getIndex(uint256[] memory data, uint256 val)
-        public
+        private
         pure
         returns (int256)
     {
@@ -200,17 +234,30 @@ contract Platgentract is AccessControl, Stoppable {
         return -1;
     }
 
-    function getProposal(uint256 proposalId)
-        public
-        view
-        returns (string memory, address)
-    {
-        Proposal storage p = proposals[proposalId];
-        return (p.platform, p.proposer);
+    function currentProposals() public view returns (uint256[] memory) {
+        uint256[] memory result = new uint256[](proposalIds.length());
+        for (uint256 i = 0; i < proposalIds.length(); i++) {
+            result[i] = proposalIds.at(i);
+        }
+        return result;
     }
 
-    function countingSort(uint256[3][] memory data, uint256 setSize)
-        internal
+    function getPlatform(uint256 proposalId)
+        external
+        view
+        returns (string memory)
+    {
+        Proposal storage p = proposals[proposalId];
+        return p.platform;
+    }
+
+    function getProposer(uint256 proposalId) external view returns (address) {
+        Proposal storage p = proposals[proposalId];
+        return p.proposer;
+    }
+
+    function _countingSort(uint256[3][] memory data, uint256 setSize)
+        private
         pure
         returns (uint256[3][] memory)
     {
@@ -223,19 +270,20 @@ contract Platgentract is AccessControl, Stoppable {
         for (uint256 i = 1; i < set.length; i++) {
             set[i] += set[i - 1];
         }
-        for (uint256 i = data.length - 1; i >= 0; i--) {
-            result[set[(data[i][2])] - 1] = data[i];
-            set[data[i][2]]--;
+        for (uint256 i = 0; i < data.length; i++) {
+            uint256 reverse = data.length - i - 1;
+            result[set[(data[reverse][2])] - 1] = data[reverse];
+            set[data[reverse][2]]--;
         }
         return result;
     }
 
-    function checkCycle(
+    function _checkCycle(
         uint256 from,
         uint256 to,
         uint256 count,
         bool[][] memory locked
-    ) internal pure returns (bool) {
+    ) private pure returns (bool) {
         if (from == to) {
             return true; // path is present hence cycle is present
         }
@@ -245,7 +293,7 @@ contract Platgentract is AccessControl, Stoppable {
                 locked[from][i]
             ) //checking for a path element by element (candidate by candidate)
             {
-                return checkCycle(i, to, count, locked);
+                return _checkCycle(i, to, count, locked);
             }
         }
         return false; // cycle is not present
@@ -275,7 +323,6 @@ contract Platgentract is AccessControl, Stoppable {
                 counter++;
             }
         }
-
         return prefs;
     }
 
@@ -304,11 +351,14 @@ contract Platgentract is AccessControl, Stoppable {
     //https://github.com/Federico-abss/CS50-intro-course/blob/master/C/pset3/tideman/tideman.c
     function _getLockedPairs() private view returns (bool[][] memory) {
         uint256[3][] memory sortedPairs =
-            countingSort(_getWinningPairs(), getRoleMemberCount(MANAGER_ROLE));
-        bool[][] memory locked = new bool[][](sortedPairs.length);
+            _countingSort(
+                _getWinningPairs(),
+                getRoleMemberCount(MANAGER_ROLE) + 1
+            );
+        bool[][] memory locked = initMultiArray(proposalIdCt + 1);
         for (uint256 i = 0; i < sortedPairs.length; i++) {
             if (
-                !checkCycle(
+                !_checkCycle(
                     sortedPairs[i][1],
                     sortedPairs[i][0],
                     proposalIds.length(),
@@ -319,5 +369,25 @@ contract Platgentract is AccessControl, Stoppable {
             }
         }
         return locked;
+    }
+
+    function isCompletedState() private view returns (bool) {
+        return state == States.Completed || block.timestamp >= votingDeadline;
+    }
+
+    function memberCount() public view returns (uint256) {
+        return getRoleMemberCount(MANAGER_ROLE);
+    }
+
+    function initMultiArray(uint256 size)
+        private
+        pure
+        returns (bool[][] memory)
+    {
+        bool[][] memory result = new bool[][](size);
+        for (uint256 i = 0; i < size; i++) {
+            result[i] = new bool[](size);
+        }
+        return result;
     }
 }

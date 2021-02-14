@@ -10,17 +10,17 @@ module.exports = {
   // see <http://truffleframework.com/docs/advanced/configuration>
   // for more details on how to specify configuration options!
   //
-  //networks: {
-  //  development: {
-  //    host: "127.0.0.1",
-  //    port: 7545,
-  //    network_id: "*"
-  //  },
-  //  test: {
-  //    host: "127.0.0.1",
-  //    port: 7545,
-  //    network_id: "*"
-  //  }
-  //}
+  networks: {
+    //  development: {
+    //    host: "127.0.0.1",
+    //    port: 7545,
+    //    network_id: "*"
+    //  },
+    ganache: {
+      host: "127.0.0.1",
+      port: 7545,
+      network_id: "*",
+    },
+  },
   //
 };

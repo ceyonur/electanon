@@ -80,10 +80,26 @@ advanceTimeAndBlock = async (time) => {
   return Promise.resolve(web3.eth.getBlock("latest"));
 };
 
+function wait(query) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise(() =>
+    rl.question(query, () => {
+      rl.close();
+    })
+  );
+}
+
 module.exports = {
   advanceTime,
   advanceBlock,
   advanceTimeAndBlock,
   takeSnapshot,
   revertToSnapShot,
+  wait,
 };
+
+const readline = require("readline");
