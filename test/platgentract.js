@@ -265,28 +265,6 @@ contract("Platgentract election", (accounts) => {
     const result = await this.contract.electionResult.call();
     expect(result.toNumber()).to.equal(1);
   });
-  it("should not exceed gas", async () => {
-    this.contract = await Platgentract.new(
-      this.initialManagers,
-      20,
-      PROPOSAL_LIFETIME,
-      VOTING_LIFETIME
-    );
-    for (let i = 0; i < 20; i++) {
-      await this.contract.propose("platform" + i, {
-        from: accounts[i],
-      });
-    }
-
-    for (let i = 0; i < 20; i++) {
-      await this.contract.vote(
-        Array.from(Array(20), (x, index) => index + 1),
-        {
-          from: accounts[i],
-        }
-      );
-    }
-  });
 });
 
 async function setupProposals(contract, accounts) {
