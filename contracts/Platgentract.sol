@@ -1,50 +1,34 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.7.6;
 
-import "@openzeppelin/contracts/utils/EnumerableSet.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "hardhat/console.sol";
-
-contract Platgentract is AccessControl {
-    using EnumerableSet for EnumerableSet.UintSet;
-
-    event Proposed(address indexed _from, uint256 indexed _id);
+contract Platgentract {
+    event Proposed(
+        uint256 indexed _id,
+        address indexed _from,
+        bytes32 _platformName
+    );
     event StateChanged(States indexed _from, States indexed _to);
 
-    struct Proposal {
-        string platform;
-        address proposer;
-    }
     enum States {Proposal, Voting, Completed}
-
-    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-    uint256 public constant MAX_PROPOSAL_CAP = 40;
-
     States state;
+
+    //uint256 constant MAX_PROPOSAL_CAP = 40;
     uint256 proposalIdCt = 0;
-    EnumerableSet.UintSet private proposalIds;
-    uint256 public proposalDeadline;
-
+    uint256 proposalDeadline;
     uint256 maxProposalCount;
-    mapping(address => bool) proposerMap;
-    mapping(bytes32 => bool) platformMap;
-
-    mapping(uint256 => Proposal) proposals;
-
-    uint256 public votingDeadline;
-    uint256 public votingLifetime;
-
-    mapping(address => bool) voters;
+    uint256 votingDeadline;
+    uint256 votingLifetime;
+    uint256 managerCount = 0;
     uint256 voterCount = 0;
-    mapping(bytes32 => uint256) rankVotes;
-    mapping(bytes32 => uint256[]) voteDict;
-    bytes32[] voteHashes;
+
+    mapping(address => bool) managers;
+    mapping(address => bool) proposerMap;
+    mapping(uint256 => uint256) voteCounts;
+
+    uint256[] ranks;
 
     modifier onlyManager {
-        require(
-            hasRole(MANAGER_ROLE, msg.sender),
-            "Only managers can call this function"
-        );
+        require(managers[msg.sender], "Only managers can call this function");
         _;
     }
 
@@ -57,12 +41,12 @@ contract Platgentract is AccessControl {
     }
 
     modifier notAlreadyProposed {
-        require(proposerMap[msg.sender] == false, "You already proposed!");
+        require(!proposerMap[msg.sender], "You already proposed!");
         _;
     }
 
     modifier notAlreadyVoted {
-        require(voters[msg.sender] == false, "You already voted!");
+        require(managers[msg.sender], "You already voted!");
         _;
     }
 
@@ -91,19 +75,22 @@ contract Platgentract is AccessControl {
     }
 
     constructor(
-        address[] memory managers,
+        address[] memory managerList,
         uint256 _maxProposalCount,
         uint256 proposalLifetime,
         uint256 _votingLifetime
     ) {
-        require(
-            maxProposalCount < MAX_PROPOSAL_CAP,
-            "maxProposalCount is too high!"
-        );
-        _setupRole(MANAGER_ROLE, msg.sender);
-        for (uint256 i = 0; i < managers.length; i++) {
-            _setupRole(MANAGER_ROLE, managers[i]);
+        // require(
+        //     maxProposalCount < MAX_PROPOSAL_CAP,
+        //     "maxProposalCount is too high!"
+        // );
+        _setupRole(msg.sender);
+        uint256 temp = 0;
+        for (uint256 i = 0; i < managerList.length; i++) {
+            _setupRole(managerList[i]);
+            temp++;
         }
+        managerCount = temp;
         toState(States.Proposal);
         maxProposalCount = _maxProposalCount;
         proposalDeadline = block.timestamp + proposalLifetime;
@@ -126,62 +113,39 @@ contract Platgentract is AccessControl {
         emit StateChanged(States.Voting, States.Completed);
     }
 
-    function propose(string calldata _platform)
+    function propose(bytes32 _platformName)
         external
         onlyManager
         timedTransitions
         atState(States.Proposal)
         notAlreadyProposed
     {
-        require(
-            platformMap[keccak256(abi.encode(_platform))] == false,
-            "Platform is already proposed"
-        );
-
         proposalIdCt++;
-        uint256 newId = proposalIdCt;
-        require(newId > 0);
-        Proposal storage p = proposals[newId];
-        p.proposer = msg.sender;
-        p.platform = _platform;
         proposerMap[msg.sender] = true;
-        platformMap[keccak256(abi.encode(_platform))] = true;
-        proposalIds.add(newId);
-        emit Proposed(msg.sender, newId);
+        emit Proposed(proposalIdCt, msg.sender, _platformName);
 
-        if (proposalIds.length() >= maxProposalCount) {
+        if (proposalIdCt >= maxProposalCount) {
             toVotingState();
         }
     }
 
     function vote(uint256[] memory votedIds)
         external
+        notAlreadyVoted
         onlyManager
         timedTransitions
         atState(States.Voting)
-        notAlreadyVoted
     {
         require(
-            votedIds.length == proposalIds.length(),
+            votedIds.length == proposalIdCt,
             "You need to include every proposal id in your voting"
         );
-        bool[] memory set = new bool[](proposalIdCt + 1);
-        for (uint256 i = 0; i < votedIds.length; i++) {
-            uint256 votedId = votedIds[i];
-            require(
-                set[votedId] == false,
-                "You need to use proposalIds only once"
-            );
-            require(proposalIds.contains(votedId), "Proposal ID is not valid!");
-            set[votedId] = true;
+        uint256 rank = get_rank(votedIds);
+        if (voteCounts[rank] == 0) {
+            ranks.push(rank);
         }
-        bytes32 key = keccak256(abi.encode(votedIds));
-        rankVotes[key] += 1;
-        if (voteDict[key].length == 0) {
-            voteHashes.push(key);
-        }
-        voteDict[key] = votedIds;
-        voters[msg.sender] = true;
+        voteCounts[rank]++;
+        managers[msg.sender] = false;
         voterCount++;
         if (voterCount == memberCount()) {
             toCompletedState();
@@ -194,11 +158,11 @@ contract Platgentract is AccessControl {
     /* solhint-enable */
     function electionResult() external view returns (uint256) {
         bool[][] memory locked = _getLockedPairs();
-        for (uint256 i = 0; i < proposalIds.length(); i++) {
+        for (uint256 i = 0; i < proposalIdCt; i++) {
             bool source = true;
-            for (uint256 j = 0; j < proposalIds.length(); j++) {
-                uint256 a = proposalIds.at(i);
-                uint256 b = proposalIds.at(j);
+            uint256 a = i + 1;
+            for (uint256 j = 0; j < proposalIdCt; j++) {
+                uint256 b = j + 1;
 
                 if (locked[b][a]) {
                     source = false;
@@ -206,20 +170,24 @@ contract Platgentract is AccessControl {
                 }
             }
             if (source) {
-                return proposalIds.at(i);
+                return a;
             }
         }
+        return 0;
     }
 
     function isManager(address account) public view returns (bool) {
-        return hasRole(MANAGER_ROLE, account);
+        return managers[account];
     }
 
     function currentState() external view returns (string memory) {
         if (state == States.Proposal) return "Proposal";
         if (state == States.Voting) return "Voting";
         if (isCompletedState()) return "Completed";
+        return "";
     }
+
+    /// PRIVATE CODE
 
     function getIndex(uint256[] memory data, uint256 val)
         private
@@ -235,25 +203,79 @@ contract Platgentract is AccessControl {
     }
 
     function currentProposals() public view returns (uint256[] memory) {
-        uint256[] memory result = new uint256[](proposalIds.length());
-        for (uint256 i = 0; i < proposalIds.length(); i++) {
-            result[i] = proposalIds.at(i);
+        uint256[] memory result = new uint256[](proposalIdCt);
+        for (uint256 i = 0; i < proposalIdCt; i++) {
+            result[i] = i + 1;
         }
         return result;
     }
 
-    function getPlatform(uint256 proposalId)
-        external
-        view
-        returns (string memory)
-    {
-        Proposal storage p = proposals[proposalId];
-        return p.platform;
+    function _mr_unrank1(
+        uint256 rank,
+        uint256 n,
+        uint256[] memory vec
+    ) private pure {
+        uint256 q = 0;
+        uint256 r = 0;
+        if (n < 1) {
+            return;
+        }
+
+        q = rank / n;
+        r = rank % n;
+        uint256 tmp = vec[r];
+        vec[r] = vec[n - 1];
+        vec[n - 1] = tmp;
+        _mr_unrank1(q, n - 1, vec);
     }
 
-    function getProposer(uint256 proposalId) external view returns (address) {
-        Proposal storage p = proposals[proposalId];
-        return p.proposer;
+    function _mr_rank1(
+        uint256 n,
+        uint256[] memory vec,
+        uint256[] memory inv
+    ) private pure returns (uint256) {
+        uint256 s = 0;
+        if (n < 2) {
+            return 0;
+        }
+
+        s = vec[n - 1] - 1;
+        uint256 tmp = vec[n - 1];
+        vec[n - 1] = vec[inv[n - 1] - 1];
+        vec[inv[n - 1] - 1] = tmp;
+
+        uint256 tmp2 = inv[s];
+        inv[s] = inv[n - 1];
+        inv[n - 1] = tmp2;
+        return s + n * _mr_rank1(n - 1, vec, inv);
+    }
+
+    function get_permutation(uint256 rank, uint256 size)
+        private
+        pure
+        returns (uint256[] memory)
+    {
+        uint256 i;
+        uint256[] memory vec = new uint256[](size);
+        for (i = 0; i < size; i++) {
+            vec[i] = i + 1;
+        }
+        _mr_unrank1(rank, size, vec);
+
+        return vec;
+    }
+
+    function get_rank(uint256[] memory vec) private pure returns (uint256) {
+        uint256 n = vec.length;
+        uint256[] memory v = new uint256[](n);
+        uint256[] memory inv = new uint256[](n);
+
+        for (uint256 i = 0; i < n; i++) {
+            v[i] = vec[i];
+            inv[vec[i] - 1] = i + 1;
+        }
+        uint256 r = _mr_rank1(n, v, inv);
+        return r;
     }
 
     function _countingSort(uint256[3][] memory data, uint256 setSize)
@@ -301,17 +323,16 @@ contract Platgentract is AccessControl {
 
     function _getPrefPairs() private view returns (uint256[4][] memory) {
         uint256 counter = 0;
-        uint256 prefLength =
-            (proposalIds.length() * (proposalIds.length() - 1)) / 2;
+        uint256 prefLength = (proposalIdCt * (proposalIdCt - 1)) / 2;
         uint256[4][] memory prefs = new uint256[4][](prefLength);
-        for (uint256 i = 0; i < proposalIds.length(); i++) {
-            for (uint256 k = i + 1; k < proposalIds.length(); k++) {
-                for (uint256 j = 0; j < voteHashes.length; j++) {
-                    uint256 a = proposalIds.at(i);
-                    uint256 b = proposalIds.at(k);
-                    bytes32 voteHash = voteHashes[j];
-                    uint256[] memory v = voteDict[voteHash];
-                    uint256 votes = rankVotes[voteHash];
+        for (uint256 i = 0; i < proposalIdCt; i++) {
+            for (uint256 k = i + 1; k < proposalIdCt; k++) {
+                for (uint256 j = 0; j < ranks.length; j++) {
+                    uint256 a = i + 1;
+                    uint256 b = k + 1;
+                    uint256[] memory v =
+                        get_permutation(ranks[j], proposalIdCt);
+                    uint256 votes = voteCounts[ranks[j]];
                     prefs[counter][0] = a;
                     prefs[counter][1] = b;
                     if (getIndex(v, a) < getIndex(v, b)) {
@@ -329,8 +350,7 @@ contract Platgentract is AccessControl {
     function _getWinningPairs() private view returns (uint256[3][] memory) {
         uint256[4][] memory prefs = _getPrefPairs();
 
-        uint256 pairLength =
-            (proposalIds.length() * (proposalIds.length() - 1)) / 2;
+        uint256 pairLength = (proposalIdCt * (proposalIdCt - 1)) / 2;
         uint256[3][] memory pairWinners = new uint256[3][](pairLength);
         for (uint256 i = 0; i < prefs.length; i++) {
             if (prefs[i][2] > prefs[i][3]) {
@@ -351,17 +371,14 @@ contract Platgentract is AccessControl {
     //https://github.com/Federico-abss/CS50-intro-course/blob/master/C/pset3/tideman/tideman.c
     function _getLockedPairs() private view returns (bool[][] memory) {
         uint256[3][] memory sortedPairs =
-            _countingSort(
-                _getWinningPairs(),
-                getRoleMemberCount(MANAGER_ROLE) + 1
-            );
+            _countingSort(_getWinningPairs(), memberCount() + 1);
         bool[][] memory locked = initMultiArray(proposalIdCt + 1);
         for (uint256 i = 0; i < sortedPairs.length; i++) {
             if (
                 !_checkCycle(
                     sortedPairs[i][1],
                     sortedPairs[i][0],
-                    proposalIds.length(),
+                    proposalIdCt,
                     locked
                 )
             ) {
@@ -376,7 +393,7 @@ contract Platgentract is AccessControl {
     }
 
     function memberCount() public view returns (uint256) {
-        return getRoleMemberCount(MANAGER_ROLE);
+        return managerCount;
     }
 
     function initMultiArray(uint256 size)
@@ -389,5 +406,9 @@ contract Platgentract is AccessControl {
             result[i] = new bool[](size);
         }
         return result;
+    }
+
+    function _setupRole(address account) private {
+        managers[account] = true;
     }
 }

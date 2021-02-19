@@ -7,6 +7,7 @@ const helper = require("./utils/helpers.js");
 
 const expect = chai.expect;
 chai.use(chaiAsPromised);
+const truffleAssert = require("truffle-assertions");
 
 const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const VOTING_LIFETIME = moment.duration(30, "days").asSeconds();
@@ -43,7 +44,7 @@ contract("Platgentract", (accounts) => {
   it("should not let non-manager to add proposal", async () => {
     const sender = accounts[5];
     await expect(
-      this.contract.propose("platform1", {
+      this.contract.propose(web3.utils.fromAscii("platform1"), {
         from: sender,
       })
     ).to.be.rejected;
@@ -62,22 +63,22 @@ contract("Platgentract", (accounts) => {
     const platform = "platform1";
     await proposeTest(sender, platform, 0, this.contract);
     await expect(
-      this.contract.propose("platform2", {
+      this.contract.propose(web3.utils.fromAscii("platform2"), {
         from: sender,
       })
     ).to.be.rejected;
   });
 
-  it("should not add proposal twice for same platform", async () => {
-    const sender = accounts[0];
-    const platform = "platform1";
-    await proposeTest(sender, platform, 0, this.contract);
-    await expect(
-      this.contract.propose(platform, {
-        from: accounts[1],
-      })
-    ).to.be.rejected;
-  });
+  // it("should not add proposal twice for same platformName", async () => {
+  //   const sender = accounts[0];
+  //   const platform = "platform1";
+  //   await proposeTest(sender, platform, 0, this.contract);
+  //   await expect(
+  //     this.contract.propose(web3.utils.fromAscii(platform), {
+  //       from: accounts[1],
+  //     })
+  //   ).to.be.rejected;
+  // });
 
   it("should not add proposal after max proposal count", async () => {
     let i = 0;
@@ -87,7 +88,7 @@ contract("Platgentract", (accounts) => {
 
     i++;
     await expect(
-      this.contract.propose("platform" + i, {
+      this.contract.propose(web3.utils.fromAscii("platform" + i), {
         from: accounts[i],
       })
     ).to.be.rejected;
@@ -97,7 +98,7 @@ contract("Platgentract", (accounts) => {
     const firstState = await this.contract.currentState.call();
     expect(firstState).to.be.equal("Proposal");
     for (let i = 0; i < MAX_PROPOSAL_COUNT; i++) {
-      await this.contract.propose("platform" + i, {
+      await this.contract.propose(web3.utils.fromAscii("platform" + i), {
         from: accounts[i],
       });
     }
@@ -108,7 +109,7 @@ contract("Platgentract", (accounts) => {
   it("should not propose in voting state", async () => {
     let i = 0;
     for (; i < MAX_PROPOSAL_COUNT; i++) {
-      await this.contract.propose("platform" + i, {
+      await this.contract.propose(web3.utils.fromAscii("platform" + i), {
         from: accounts[i],
       });
     }
@@ -116,7 +117,7 @@ contract("Platgentract", (accounts) => {
     const secondState = await this.contract.currentState.call();
     expect(secondState).to.be.equal("Voting");
     await expect(
-      this.contract.propose("platform" + i, {
+      this.contract.propose(web3.utils.fromAscii("platform" + i), {
         from: accounts[i],
       })
     ).to.be.rejected;
@@ -126,7 +127,7 @@ contract("Platgentract", (accounts) => {
     await proposeTest(accounts[0], "platform0", 0, this.contract);
     await helper.advanceTimeAndBlock(PROPOSAL_LIFETIME + 60);
     await expect(
-      this.contract.propose("platform" + 1, {
+      this.contract.propose(web3.utils.fromAscii("platform" + 1), {
         from: accounts[1],
       })
     ).to.be.rejected;
@@ -227,7 +228,7 @@ contract("Platgentract election", (accounts) => {
 
   it("should be able to announce election result correctly", async () => {
     for (let i = 1; i <= 5; i++) {
-      await this.contract.propose("platform" + i, {
+      await this.contract.propose(web3.utils.fromAscii("platform" + i), {
         from: accounts[i],
       });
     }
@@ -268,19 +269,19 @@ contract("Platgentract election", (accounts) => {
 });
 
 async function setupProposals(contract, accounts) {
-  await contract.propose("platform1", {
+  await contract.propose(web3.utils.fromAscii("platform1"), {
     from: accounts[0],
   });
-  await contract.propose("platform2", {
+  await contract.propose(web3.utils.fromAscii("platform2"), {
     from: accounts[1],
   });
-  await contract.propose("platform3", {
+  await contract.propose(web3.utils.fromAscii("platform3"), {
     from: accounts[2],
   });
 }
 
 async function proposeTest(sender, platform, index, contract) {
-  await contract.propose(platform, {
+  const tx = await contract.propose(web3.utils.fromAscii(platform), {
     from: sender,
   });
   const proposals = await contract.currentProposals.call();
@@ -288,9 +289,10 @@ async function proposeTest(sender, platform, index, contract) {
     .to.be.an("array")
     .that.has.lengthOf(index + 1);
 
-  const platformDetail = await contract.getPlatform.call(proposals[index]);
-  expect(platformDetail).to.be.equal(platform);
-
-  const proposer = await contract.getProposer.call(proposals[index]);
-  expect(proposer).to.be.equal(sender);
+  truffleAssert.eventEmitted(tx, "Proposed", (ev) => {
+    return (
+      ev._from === sender &&
+      expect(web3.utils.hexToUtf8(ev._platformName)).to.be.equal(platform)
+    );
+  });
 }
