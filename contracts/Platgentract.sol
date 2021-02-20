@@ -21,14 +21,16 @@ contract Platgentract {
     uint256 managerCount = 0;
     uint256 voterCount = 0;
 
-    mapping(address => bool) managers;
-    mapping(address => bool) proposerMap;
+    mapping(address => uint256) managers;
     mapping(uint256 => uint256) voteCounts;
 
     uint256[] ranks;
 
     modifier onlyManager {
-        require(managers[msg.sender], "Only managers can call this function");
+        require(
+            managers[msg.sender] > 0,
+            "Only managers can call this function"
+        );
         _;
     }
 
@@ -41,12 +43,12 @@ contract Platgentract {
     }
 
     modifier notAlreadyProposed {
-        require(!proposerMap[msg.sender], "You already proposed!");
+        require(managers[msg.sender] > 2, "You already proposed!");
         _;
     }
 
     modifier notAlreadyVoted {
-        require(managers[msg.sender], "You already voted!");
+        require(managers[msg.sender] > 1, "You already voted!");
         _;
     }
 
@@ -121,7 +123,7 @@ contract Platgentract {
         notAlreadyProposed
     {
         proposalIdCt++;
-        proposerMap[msg.sender] = true;
+        managers[msg.sender]--;
         emit Proposed(proposalIdCt, msg.sender, _platformName);
 
         if (proposalIdCt >= maxProposalCount) {
@@ -129,23 +131,18 @@ contract Platgentract {
         }
     }
 
-    function vote(uint256[] memory votedIds)
+    function vote(uint256 rank)
         external
-        notAlreadyVoted
         onlyManager
+        notAlreadyVoted
         timedTransitions
         atState(States.Voting)
     {
-        require(
-            votedIds.length == proposalIdCt,
-            "You need to include every proposal id in your voting"
-        );
-        uint256 rank = get_rank(votedIds);
         if (voteCounts[rank] == 0) {
             ranks.push(rank);
         }
         voteCounts[rank]++;
-        managers[msg.sender] = false;
+        managers[msg.sender]--;
         voterCount++;
         if (voterCount == memberCount()) {
             toCompletedState();
@@ -177,7 +174,7 @@ contract Platgentract {
     }
 
     function isManager(address account) public view returns (bool) {
-        return managers[account];
+        return managers[account] > 0;
     }
 
     function currentState() external view returns (string memory) {
@@ -210,6 +207,20 @@ contract Platgentract {
         return result;
     }
 
+    function getRank(uint256[] memory vec) public pure returns (uint256) {
+        uint256 n = vec.length;
+        uint256[] memory v = new uint256[](n);
+        uint256[] memory inv = new uint256[](n);
+
+        for (uint256 i = 0; i < n; i++) {
+            v[i] = vec[i];
+            inv[vec[i] - 1] = i + 1;
+        }
+        uint256 r = _mr_rank1(n, v, inv);
+        return r;
+    }
+
+    //https://rosettacode.org/wiki/Permutations/Rank_of_a_permutation
     function _mr_unrank1(
         uint256 rank,
         uint256 n,
@@ -263,19 +274,6 @@ contract Platgentract {
         _mr_unrank1(rank, size, vec);
 
         return vec;
-    }
-
-    function get_rank(uint256[] memory vec) private pure returns (uint256) {
-        uint256 n = vec.length;
-        uint256[] memory v = new uint256[](n);
-        uint256[] memory inv = new uint256[](n);
-
-        for (uint256 i = 0; i < n; i++) {
-            v[i] = vec[i];
-            inv[vec[i] - 1] = i + 1;
-        }
-        uint256 r = _mr_rank1(n, v, inv);
-        return r;
     }
 
     function _countingSort(uint256[3][] memory data, uint256 setSize)
@@ -409,6 +407,6 @@ contract Platgentract {
     }
 
     function _setupRole(address account) private {
-        managers[account] = true;
+        managers[account] = 3;
     }
 }

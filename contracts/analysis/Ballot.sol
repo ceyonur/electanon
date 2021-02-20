@@ -29,10 +29,12 @@ contract Ballot {
     Proposal[] public proposals;
 
     /// Create a new ballot to choose one of `proposalNames`.
-    constructor() {
+    constructor(address[] memory list) {
         chairperson = msg.sender;
         voters[chairperson].weight = 1;
-
+        for (uint256 i = 0; i < list.length; i++) {
+            voters[list[i]].weight = 1;
+        }
         // For each of the provided proposal names,
         // create a new proposal object and add it
         // to the end of the array.
@@ -110,6 +112,7 @@ contract Ballot {
     /// to proposal `proposals[proposal].name`.
     function vote(uint256 proposal) public {
         Voter storage sender = voters[msg.sender];
+        require(sender.weight > 0, "not eligible");
         require(!sender.voted, "Already voted.");
         sender.voted = true;
         sender.vote = proposal;

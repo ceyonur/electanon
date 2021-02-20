@@ -1,16 +1,22 @@
 const Platgentract = artifacts.require("Platgentract");
-const Ballot = artifacts.require("Ballot");
+const Ballot = artifacts.require("analysis/Ballot");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
+const { expect } = require("hardhat");
 const moment = require("moment");
 
 chai.use(chaiAsPromised);
 
 const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const VOTING_LIFETIME = moment.duration(30, "days").asSeconds();
-const proposalCount = 100;
-const managerCount = 100;
+
+const proposalCount = Number(process.env.PCOUNT) || 20;
+const managerCount = Number(process.env.MCOUNT) || 50;
+
+console.log(
+  "ProposalCount: " + proposalCount + ", ManagerCount: " + managerCount
+);
 
 contract("Platgentract", (accounts) => {
   beforeEach(async () => {
@@ -30,19 +36,18 @@ contract("Platgentract", (accounts) => {
     }
 
     for (let i = 0; i < managerCount; i++) {
-      let votes = shuffle(
-        Array.from(Array(proposalCount), (x, index) => index + 1)
-      );
-      await this.contract.vote(votes, {
+      await this.contract.vote(getRandom(proposalCount), {
         from: accounts[i],
       });
     }
+    const result = await this.contract.electionResult.call();
+    expect(result.toNumber()).to.greaterThan(0);
   });
 });
 
 contract("Ballot", (accounts) => {
   beforeEach(async () => {
-    this.contract = await Ballot.new();
+    this.contract = await Ballot.new(accounts.slice(0, managerCount));
   });
 
   it("should not exceed gas", async () => {
@@ -52,8 +57,8 @@ contract("Ballot", (accounts) => {
       });
     }
 
-    for (let i = 0; i < proposalCount; i++) {
-      await this.contract.vote(i, {
+    for (let i = 0; i < managerCount; i++) {
+      await this.contract.vote(getRandom(proposalCount), {
         from: accounts[i],
       });
     }
@@ -62,4 +67,8 @@ contract("Ballot", (accounts) => {
 
 function shuffle(array) {
   return array.sort(() => Math.random() - 0.5);
+}
+
+function getRandom(proposalCt) {
+  return Math.floor(Math.random() * Number(proposalCt));
 }

@@ -123,6 +123,11 @@ contract("Platgentract", (accounts) => {
     ).to.be.rejected;
   });
 
+  it("should return correct rank for the array", async () => {
+    const result = await this.contract.getRank.call([1, 2, 3, 4]);
+    expect(result.toNumber()).to.be.equal(23);
+  });
+
   it("should change state to voting after deadline", async () => {
     await proposeTest(accounts[0], "platform0", 0, this.contract);
     await helper.advanceTimeAndBlock(PROPOSAL_LIFETIME + 60);
@@ -132,23 +137,10 @@ contract("Platgentract", (accounts) => {
       })
     ).to.be.rejected;
     const proposals = await this.contract.currentProposals.call();
-    await this.contract.vote(proposals, {
-      from: accounts[1],
-    });
+    await voteWithArray(proposals, accounts[1], this.contract);
 
     const secondState = await this.contract.currentState.call();
     expect(secondState).to.be.equal("Voting");
-  });
-
-  it("should not vote for same proposal", async () => {
-    await setupProposals(this.contract, accounts);
-
-    await helper.advanceTimeAndBlock(PROPOSAL_LIFETIME + 60);
-    await expect(
-      this.contract.vote([1, 1, 1], {
-        from: accounts[1],
-      })
-    ).to.be.rejected;
   });
 
   it("should not vote twice", async () => {
@@ -156,13 +148,13 @@ contract("Platgentract", (accounts) => {
 
     await helper.advanceTimeAndBlock(PROPOSAL_LIFETIME + 60);
     await expect(
-      this.contract.vote([1, 2, 3], {
+      this.contract.vote(1, {
         from: accounts[1],
       })
     ).to.be.fulfilled;
 
     await expect(
-      this.contract.vote([1, 2, 3], {
+      this.contract.vote(1, {
         from: accounts[1],
       })
     ).to.be.rejected;
@@ -172,13 +164,13 @@ contract("Platgentract", (accounts) => {
     await setupProposals(this.contract, accounts);
     await helper.advanceTimeAndBlock(PROPOSAL_LIFETIME + 60);
     await expect(
-      this.contract.vote([1, 2, 3], {
+      this.contract.vote(1, {
         from: accounts[1],
       })
     ).to.be.fulfilled;
     await helper.advanceTimeAndBlock(VOTING_LIFETIME + 60);
     await expect(
-      this.contract.vote([1, 2, 3], {
+      this.contract.vote(1, {
         from: accounts[2],
       })
     ).to.be.rejected;
@@ -187,16 +179,9 @@ contract("Platgentract", (accounts) => {
   it("should be able to call election result after deadline", async () => {
     await setupProposals(this.contract, accounts);
     await helper.advanceTimeAndBlock(PROPOSAL_LIFETIME + 60);
-    await this.contract.vote([1, 2, 3], {
-      from: accounts[1],
-    });
+    await voteWithArray([1, 2, 3], accounts[1], this.contract);
 
     await helper.advanceTimeAndBlock(VOTING_LIFETIME + 60);
-    await expect(
-      this.contract.vote([1, 2, 3], {
-        from: accounts[2],
-      })
-    ).to.be.rejected;
 
     const result = await this.contract.electionResult.call();
     expect(result.toNumber()).to.equal(1);
@@ -233,33 +218,23 @@ contract("Platgentract election", (accounts) => {
       });
     }
     for (let i = 0; i < 3; i++) {
-      await this.contract.vote([1, 2, 3, 4, 5], {
-        from: accounts[i],
-      });
+      await voteWithArray([1, 2, 3, 4, 5], accounts[i], this.contract);
     }
 
     for (let i = 3; i < 5; i++) {
-      await this.contract.vote([2, 1, 4, 5, 3], {
-        from: accounts[i],
-      });
+      await voteWithArray([2, 1, 4, 5, 3], accounts[i], this.contract);
     }
 
     for (let i = 5; i < 6; i++) {
-      await this.contract.vote([1, 3, 4, 2, 5], {
-        from: accounts[i],
-      });
+      await voteWithArray([1, 3, 4, 2, 5], accounts[i], this.contract);
     }
 
     for (let i = 6; i < 8; i++) {
-      await this.contract.vote([1, 3, 5, 4, 2], {
-        from: accounts[i],
-      });
+      await voteWithArray([1, 3, 5, 4, 2], accounts[i], this.contract);
     }
 
     for (let i = 8; i < 10; i++) {
-      await this.contract.vote([2, 3, 5, 4, 1], {
-        from: accounts[i],
-      });
+      await voteWithArray([2, 3, 5, 4, 1], accounts[i], this.contract);
     }
 
     await helper.advanceTimeAndBlock(VOTING_LIFETIME + 60);
@@ -294,5 +269,12 @@ async function proposeTest(sender, platform, index, contract) {
       ev._from === sender &&
       expect(web3.utils.hexToUtf8(ev._platformName)).to.be.equal(platform)
     );
+  });
+}
+
+async function voteWithArray(votes, sender, contract) {
+  const rank = await contract.getRank.call(votes);
+  await contract.vote(rank, {
+    from: sender,
   });
 }

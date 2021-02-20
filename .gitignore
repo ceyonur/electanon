@@ -113,3 +113,4 @@ artifacts
 
 build/
 
+.DS_Store
