@@ -33,14 +33,14 @@ contract("Platgentract", (accounts) => {
 
     for (let i = 0; i < managerCount; i++) {
       await this.contract.vote(
-        Array.from(Array(proposalCount), (x, index) => index + 1),
+        shuffle(Array.from(Array(proposalCount), (x, index) => index + 1)),
         {
           from: accounts[i],
         }
       );
     }
-    const result = await this.contract.electionResult.estimateGas();
-    console.log(result);
+    //const result = await this.contract.electionResult.estimateGas();
+    //console.log(result);
     //expect(result.toNumber()).to.greaterThan(0);
   });
 });
@@ -67,4 +67,8 @@ contract("Ballot", (accounts) => {
 
 function getRandom(proposalCt) {
   return Math.floor(Math.random() * Number(proposalCt));
+}
+
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
 }
