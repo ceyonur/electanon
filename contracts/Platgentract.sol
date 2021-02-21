@@ -203,19 +203,6 @@ contract Platgentract {
         return false;
     }
 
-    function getIndex(uint256[] memory data, uint256 val)
-        private
-        pure
-        returns (int256)
-    {
-        for (uint256 i = 0; i < data.length; i++) {
-            if (data[i] == val) {
-                return int256(i);
-            }
-        }
-        return -1;
-    }
-
     function currentProposals() public view returns (uint256[] memory) {
         uint256[] memory result = new uint256[](proposalIdCt);
         for (uint256 i = 0; i < proposalIdCt; i++) {
@@ -251,9 +238,7 @@ contract Platgentract {
 
         q = rank / n;
         r = rank % n;
-        uint256 tmp = vec[r];
-        vec[r] = vec[n - 1];
-        vec[n - 1] = tmp;
+        (vec[r], vec[n - 1]) = (vec[n - 1], vec[r]);
         _mr_unrank1(q, n - 1, vec);
     }
 
@@ -268,13 +253,9 @@ contract Platgentract {
         }
 
         s = vec[n - 1] - 1;
-        uint256 tmp = vec[n - 1];
-        vec[n - 1] = vec[inv[n - 1] - 1];
-        vec[inv[n - 1] - 1] = tmp;
+        (vec[n - 1], vec[inv[n - 1] - 1]) = (vec[inv[n - 1] - 1], vec[n - 1]);
 
-        uint256 tmp2 = inv[s];
-        inv[s] = inv[n - 1];
-        inv[n - 1] = tmp2;
+        (inv[s], inv[n - 1]) = (inv[n - 1], inv[s]);
         return s + n * _mr_rank1(n - 1, vec, inv);
     }
 
