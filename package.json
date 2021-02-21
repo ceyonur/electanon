@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/ceyonur/gentract#readme",
   "dependencies": {
-    "@openzeppelin/contracts": "^3.3.0",
+    "@openzeppelin/contracts": "^3.4.0",
     "@poanet/solidity-flattener": "^3.0.6",
     "chai-as-promised": "^7.1.1",
     "eslint-plugin-truffle": "^0.3.1",

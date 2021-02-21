@@ -3,7 +3,6 @@ const Ballot = artifacts.require("analysis/Ballot");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
-const { expect } = require("hardhat");
 const moment = require("moment");
 
 chai.use(chaiAsPromised);
@@ -36,12 +35,13 @@ contract("Platgentract", (accounts) => {
     }
 
     for (let i = 0; i < managerCount; i++) {
-      await this.contract.vote(getRandom(proposalCount), {
+      await this.contract.vote(managerCount, {
         from: accounts[i],
       });
     }
-    const result = await this.contract.electionResult.call();
-    expect(result.toNumber()).to.greaterThan(0);
+    const result = await this.contract.electionResult.estimateGas();
+    console.log(result);
+    //expect(result.toNumber()).to.greaterThan(0);
   });
 });
 
@@ -64,10 +64,6 @@ contract("Ballot", (accounts) => {
     }
   });
 });
-
-function shuffle(array) {
-  return array.sort(() => Math.random() - 0.5);
-}
 
 function getRandom(proposalCt) {
   return Math.floor(Math.random() * Number(proposalCt));

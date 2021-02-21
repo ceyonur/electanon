@@ -226,11 +226,11 @@ contract("Platgentract election", (accounts) => {
     }
 
     for (let i = 5; i < 6; i++) {
-      await voteWithArray([1, 3, 4, 2, 5], accounts[i], this.contract);
+      await voteWithArray([2, 3, 4, 1, 5], accounts[i], this.contract);
     }
 
     for (let i = 6; i < 8; i++) {
-      await voteWithArray([1, 3, 5, 4, 2], accounts[i], this.contract);
+      await voteWithArray([2, 3, 5, 4, 1], accounts[i], this.contract);
     }
 
     for (let i = 8; i < 10; i++) {
@@ -239,7 +239,7 @@ contract("Platgentract election", (accounts) => {
 
     await helper.advanceTimeAndBlock(VOTING_LIFETIME + 60);
     const result = await this.contract.electionResult.call();
-    expect(result.toNumber()).to.equal(1);
+    expect(result.toNumber()).to.equal(2);
   });
 });
 

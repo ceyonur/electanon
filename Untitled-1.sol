@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.1;
 
+import "hardhat/console.sol";
+
 contract Platgentract {
     event Proposed(
         uint256 indexed _id,
@@ -12,7 +14,7 @@ contract Platgentract {
     enum States {Proposal, Voting, Completed}
     States state;
 
-    uint256 constant MAX_PROPOSAL_CAP = 30;
+    //uint256 constant MAX_PROPOSAL_CAP = 21;
     uint256 proposalIdCt = 0;
     uint256 proposalDeadline;
     uint256 maxProposalCount;
@@ -68,9 +70,8 @@ contract Platgentract {
     modifier timedTransitions() {
         if (state == States.Proposal && block.timestamp >= proposalDeadline) {
             toVotingState();
-        } else if (
-            state == States.Voting && block.timestamp >= votingDeadline
-        ) {
+        }
+        if (state == States.Voting && block.timestamp >= votingDeadline) {
             toCompletedState();
         }
         // The other stages transition by transaction
@@ -83,10 +84,10 @@ contract Platgentract {
         uint256 proposalLifetime,
         uint256 _votingLifetime
     ) {
-        require(
-            maxProposalCount <= MAX_PROPOSAL_CAP,
-            "maxProposalCount is too high!"
-        );
+        // require(
+        //     maxProposalCount < MAX_PROPOSAL_CAP,
+        //     "maxProposalCount is too high!"
+        // );
         _setupRole(msg.sender);
         for (uint256 i = 0; i < managerList.length; i++) {
             _setupRole(managerList[i]);
@@ -161,17 +162,21 @@ contract Platgentract {
         uint256 matrixSize = proposalIdCt;
         uint256[] memory rankIds = ranks;
         uint256[4][] memory prefs = _getPrefPairs(matrixSize, rankIds);
-        bool[][] memory locked = _getLockedPairs(matrixSize, prefs);
+        bool[][] memory locked =
+            _getLockedPairs(matrixSize, managerCount, prefs);
         for (uint256 i = 0; i < matrixSize; i++) {
             bool source = true;
+            uint256 a = i + 1;
             for (uint256 j = 0; j < matrixSize; j++) {
-                if (locked[j + 1][i + 1]) {
+                uint256 b = j + 1;
+
+                if (locked[b][a]) {
                     source = false;
                     break;
                 }
             }
             if (source) {
-                return i + 1;
+                return a;
             }
         }
         return 0;
@@ -189,19 +194,6 @@ contract Platgentract {
     }
 
     /// PRIVATE CODE
-
-    function isFirstInArray(
-        uint256[] memory data,
-        uint256 val1,
-        uint256 val2
-    ) private pure returns (bool) {
-        for (uint256 i = 0; i < data.length; i++) {
-            if (data[i] == val1) {
-                return true;
-            } else if (data[i] == val2) return false;
-        }
-        return false;
-    }
 
     function getIndex(uint256[] memory data, uint256 val)
         private
@@ -293,6 +285,31 @@ contract Platgentract {
         return vec;
     }
 
+    function _countingSort(uint256[3][] memory data, uint256 setSize)
+        private
+        view
+        returns (uint256[3][] memory)
+    {
+        uint256 length = data.length;
+        uint256[] memory set = new uint256[](setSize);
+        uint256[3][] memory result = new uint256[3][](length);
+        console.log(setSize);
+        for (uint256 i = 0; i < length; i++) {
+            console.log(data[i][2]);
+
+            set[data[i][2]]++;
+        }
+        for (uint256 i = 1; i < set.length; i++) {
+            set[i] += set[i - 1];
+        }
+        for (uint256 i = 0; i < data.length; i++) {
+            uint256 reverse = data.length - i - 1;
+            result[set[(data[reverse][2])] - 1] = data[reverse];
+            set[data[reverse][2]]--;
+        }
+        return result;
+    }
+
     function _checkCycle(
         uint256 from,
         uint256 to,
@@ -328,17 +345,17 @@ contract Platgentract {
             uint256[] memory v = get_permutation(id, matrixSize);
             for (uint256 i = 0; i < matrixSize; i++) {
                 for (uint256 k = i + 1; k < matrixSize; k++) {
-                    if (prefs[counter][0] == 0) {
-                        prefs[counter][0] = i + 1;
-                        prefs[counter][1] = k + 1;
-                    }
-                    if (isFirstInArray(v, i + 1, k + 1)) {
+                    uint256 a = i + 1;
+                    uint256 b = k + 1;
+                    prefs[counter][0] = a;
+                    prefs[counter][1] = b;
+                    if (getIndex(v, a) < getIndex(v, b)) {
                         prefs[counter][2] += votes;
                     } else {
                         prefs[counter][3] += votes;
                     }
-                    counter++;
                 }
+                counter++;
             }
         }
         return prefs;
@@ -358,7 +375,7 @@ contract Platgentract {
                 // loser
                 pairWinners[i][1] = prefs[i][1];
                 pairWinners[i][2] = prefs[i][2];
-            } else {
+            } else if (prefs[i][2] < prefs[i][3]) {
                 pairWinners[i][0] = prefs[i][1];
                 pairWinners[i][1] = prefs[i][0];
                 pairWinners[i][2] = prefs[i][3];
@@ -368,13 +385,13 @@ contract Platgentract {
     }
 
     //https://github.com/Federico-abss/CS50-intro-course/blob/master/C/pset3/tideman/tideman.c
-    function _getLockedPairs(uint256 matrixSize, uint256[4][] memory prefs)
-        private
-        pure
-        returns (bool[][] memory)
-    {
-        uint256[3][] memory sortedPairs = _getWinningPairs(matrixSize, prefs);
-        insertionSort(sortedPairs);
+    function _getLockedPairs(
+        uint256 matrixSize,
+        uint256 managerCt,
+        uint256[4][] memory prefs
+    ) private view returns (bool[][] memory) {
+        uint256[3][] memory sortedPairs =
+            _countingSort(_getWinningPairs(matrixSize, prefs), managerCt + 1);
         bool[][] memory locked = initMultiArray(matrixSize + 1);
         for (uint256 i = 0; i < sortedPairs.length; i++) {
             if (
@@ -410,76 +427,4 @@ contract Platgentract {
     function _setupRole(address account) private {
         managers[account] = 3;
     }
-
-    //sorting algorithms
-
-    //https://medium.com/coinmonks/sorting-in-solidity-without-comparison-4eb47e04ff0d
-    // function _countingSort(uint256[3][] memory data, uint256 setSize)
-    //     private
-    //     pure
-    //     returns (uint256[3][] memory)
-    // {
-    //     uint256 length = data.length;
-    //     uint256[] memory set = new uint256[](setSize);
-    //     uint256[3][] memory result = new uint256[3][](length);
-    //     for (uint256 i = 0; i < length; i++) {
-    //         set[data[i][2]]++;
-    //     }
-    //     for (uint256 i = 1; i < set.length; i++) {
-    //         set[i] += set[i - 1];
-    //     }
-    //     for (uint256 i = 0; i < data.length; i++) {
-    //         uint256 reverse = data.length - i - 1;
-    //         result[set[(data[reverse][2])] - 1] = data[reverse];
-    //         set[data[reverse][2]]--;
-    //     }
-    //     return result;
-    // }
-
-    function insertionSort(uint256[3][] memory data) private pure {
-        uint256 length = data.length;
-        for (uint256 i = 1; i < length; i++) {
-            uint256 key = data[i][2];
-            uint256 j = i - 1;
-            uint256[3] memory keyRow = data[i];
-            while ((j >= 0) && (data[j][2] < key)) {
-                data[j + 1] = data[j];
-                if (j == 0) {
-                    break;
-                }
-                j--;
-            }
-            data[j + 1] = keyRow;
-        }
-    }
-
-    // function quickSort(uint256[3][] memory data) private pure {
-    //     if (data.length > 1) {
-    //         quickPart(data, 0, data.length - 1);
-    //     }
-    // }
-
-    // function quickPart(
-    //     uint256[3][] memory data,
-    //     uint256 low,
-    //     uint256 high
-    // ) private pure {
-    //     if (low < high) {
-    //         uint256 pivotVal = data[(low + high) / 2][2];
-
-    //         uint256 low1 = low;
-    //         uint256 high1 = high;
-    //         for (;;) {
-    //             while (data[low1][2] < pivotVal) low1++;
-    //             while (data[high1][2] > pivotVal) high1--;
-    //             if (low1 >= high1) break;
-    //             (data[low1], data[high1]) = (data[high1], data[low1]);
-    //             low1++;
-    //             high1--;
-    //         }
-    //         if (low < high1) quickPart(data, low, high1);
-    //         high1++;
-    //         if (high1 < high) quickPart(data, high1, high);
-    //     }
-    // }
 }
