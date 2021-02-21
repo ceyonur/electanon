@@ -11,8 +11,8 @@ chai.use(chaiAsPromised);
 
 const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const VOTING_LIFETIME = moment.duration(30, "days").asSeconds();
-const proposalCount = 30;
-const managerCount = 100;
+const proposalCount = Number(process.env.PCOUNT) || 20;
+const managerCount = Number(process.env.MCOUNT) || 50;
 
 contract("Platgentract", (accounts) => {
   beforeEach(async () => {
@@ -39,8 +39,9 @@ contract("Platgentract", (accounts) => {
         }
       );
     }
-    //const result = await this.contract.electionResult.call();
-    //expect(result.toNumber()).to.equal(1);
+    const result = await this.contract.electionResult.estimateGas();
+    console.log(result);
+    //expect(result.toNumber()).to.greaterThan(0);
   });
 });
 
@@ -56,10 +57,14 @@ contract("Ballot", (accounts) => {
       });
     }
 
-    for (let i = 0; i < proposalCount; i++) {
-      await this.contract.vote(i, {
+    for (let i = 0; i < managerCount; i++) {
+      await this.contract.vote(getRandom(proposalCount), {
         from: accounts[i],
       });
     }
   });
 });
+
+function getRandom(proposalCt) {
+  return Math.floor(Math.random() * Number(proposalCt));
+}
