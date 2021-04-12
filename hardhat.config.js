@@ -8,47 +8,21 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.7.6",
+        version: "0.8.3",
         settings: {
           optimizer: {
             enabled: true,
             runs: 200,
+            details: {
+              orderLiterals: true,
+              deduplicate: true,
+              cse: true,
+              constantOptimizer: true,
+            },
           },
         },
       },
     ],
-    overrides: {
-      "contracts/Platgentract.sol": {
-        version: "0.8.1",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-            details: {
-              orderLiterals: true,
-              deduplicate: true,
-              cse: true,
-              constantOptimizer: true,
-            },
-          },
-        },
-      },
-      "contracts/analysis/Ballot.sol": {
-        version: "0.8.1",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-            details: {
-              orderLiterals: true,
-              deduplicate: true,
-              cse: true,
-              constantOptimizer: true,
-            },
-          },
-        },
-      },
-    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,

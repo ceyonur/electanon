@@ -114,3 +114,5 @@ artifacts
 build/
 
 .DS_Store
+
+circuits/*
