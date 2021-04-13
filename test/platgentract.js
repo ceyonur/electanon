@@ -144,9 +144,10 @@ contract("Platgentract", (accounts) => {
   });
 
   it("should not vote twice", async () => {
-    await setupProposals(this.contract, accounts);
+    await setupProposals(this.contract, accounts, 2);
 
     await helper.advanceTimeAndBlock(PROPOSAL_LIFETIME + 60);
+    //proposer
     await expect(
       this.contract.vote(1, {
         from: accounts[1],
@@ -156,6 +157,19 @@ contract("Platgentract", (accounts) => {
     await expect(
       this.contract.vote(1, {
         from: accounts[1],
+      })
+    ).to.be.rejected;
+
+    //voter
+    await expect(
+      this.contract.vote(1, {
+        from: accounts[3],
+      })
+    ).to.be.fulfilled;
+
+    await expect(
+      this.contract.vote(1, {
+        from: accounts[3],
       })
     ).to.be.rejected;
   });
@@ -243,16 +257,12 @@ contract("Platgentract election", (accounts) => {
   });
 });
 
-async function setupProposals(contract, accounts) {
-  await contract.propose(web3.utils.fromAscii("platform1"), {
-    from: accounts[0],
-  });
-  await contract.propose(web3.utils.fromAscii("platform2"), {
-    from: accounts[1],
-  });
-  await contract.propose(web3.utils.fromAscii("platform3"), {
-    from: accounts[2],
-  });
+async function setupProposals(contract, accounts, count = 3) {
+  for (let i = 0; i < count; i++) {
+    await contract.propose(web3.utils.fromAscii("platform" + i + 1), {
+      from: accounts[i],
+    });
+  }
 }
 
 async function proposeTest(sender, platform, index, contract) {

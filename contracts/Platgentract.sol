@@ -122,7 +122,7 @@ contract Platgentract {
         notAlreadyProposed
     {
         proposalIdCt++;
-        managers[msg.sender]--;
+        managers[msg.sender] = 2;
         emit Proposed(proposalIdCt, msg.sender, _platformName);
 
         if (proposalIdCt >= maxProposalCount) {
@@ -141,7 +141,7 @@ contract Platgentract {
             ranks.push(rank);
         }
         voteCounts[rank]++;
-        managers[msg.sender]--;
+        managers[msg.sender] = 1;
         voterCount++;
         if (voterCount == managerCount) {
             toCompletedState();
