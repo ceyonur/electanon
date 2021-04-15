@@ -37,7 +37,7 @@ let mimcContract;
 // hex representations of all inserted identity commitments
 let insertedIdentityCommitments = [];
 
-contract("Semaphore", (accounts) => {
+contract("Semaphore", () => {
   before(async () => {
     console.log("Deploying MiMC");
     mimcContract = await MiMC.new();

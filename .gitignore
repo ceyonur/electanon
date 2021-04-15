@@ -115,4 +115,6 @@ build/
 
 .DS_Store
 
-circuits/*
+circuits/circuit.json
+circuits/proving_key.bin
+circuits/verification_key.json
