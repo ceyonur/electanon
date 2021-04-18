@@ -40,7 +40,7 @@ contract("Platgentract", (accounts) => {
       });
     }
     const result = await this.contract.electionResult.estimateGas();
-    console.log(result);
+    console.log("Election Result estimated Gas: " + result);
     //expect(result.toNumber()).to.greaterThan(0);
   });
 });
