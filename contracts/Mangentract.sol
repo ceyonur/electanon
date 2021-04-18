@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.6;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "./utils/Stoppable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-contract Mangentract is AccessControl, Stoppable {
+contract Mangentract is AccessControlEnumerable, Stoppable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");

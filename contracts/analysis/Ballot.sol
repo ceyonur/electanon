@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.1;
+pragma solidity ^0.8.0;
 
 /// @title Voting with delegation.
 contract Ballot {
