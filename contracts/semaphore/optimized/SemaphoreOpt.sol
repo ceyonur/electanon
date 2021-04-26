@@ -32,30 +32,20 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
     // We store the external nullifiers using a mapping of the form:
     // enA => { next external nullifier; if enA exists; if enA is active }
     // Think of it as a linked list.
-    mapping(uint232 => bool) public externalNullifiers;
+    uint256 externalNullifier = 0;
 
     // Whether the contract has already seen a particular nullifier hash
     mapping(uint256 => bool) public nullifierHashHistory;
-    // This value should be equal to
-    // 0x7d10c03d1f7884c85edee6353bd2b2ffbae9221236edde3778eac58089912bc0
-    // which you can calculate using the following ethersjs code:
-    // ethers.utils.solidityKeccak256(['bytes'], [ethers.utils.toUtf8Bytes('Semaphore')])
-    // By setting the value of unset (empty) tree leaves to this
-    // nothing-up-my-sleeve value, the authors hope to demonstrate that they do
-    // not have its preimage and therefore cannot spend funds they do not own.
-
-    uint256 public NOTHING_UP_MY_SLEEVE_ZERO =
-        uint256(keccak256(abi.encodePacked("Semaphore"))) % SNARK_SCALAR_FIELD;
 
     /*
      * @param _treeLevels The depth of the identity tree.
      * @param _firstExternalNullifier The first identity nullifier to add.
      */
-    constructor(uint256 _treeLevels, uint232 _firstExternalNullifier)
-        IncrementalMerkleTreeOpt(_treeLevels, NOTHING_UP_MY_SLEEVE_ZERO)
+    constructor(uint256 _treeLevels)
+        IncrementalMerkleTreeOpt(_treeLevels)
         Ownable()
     {
-        addEn(_firstExternalNullifier);
+        addEn(uint256(uint160(address(this))));
     }
 
     /*
@@ -88,8 +78,8 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
      * Produces a keccak256 hash of the given signal, shifted right by 8 bits.
      * @param _signal The signal to hash
      */
-    function hashSignal(bytes memory _signal) internal pure returns (uint256) {
-        return uint256(keccak256(_signal)) >> 8;
+    function hashSignal(bytes32 _signal) internal pure returns (uint256) {
+        return uint256(keccak256(abi.encode(_signal))) >> 8;
     }
 
     /*
@@ -157,14 +147,13 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
      * @param _externalNullifier The external nullifier
      */
     function preBroadcastCheck(
-        bytes memory _signal,
+        bytes32 _signal,
         uint256[8] memory _proof,
         uint256 _nullifiersHash,
-        uint256 _signalHash,
-        uint232 _externalNullifier
+        uint256 _signalHash
     ) public view returns (bool) {
         uint256[4] memory publicSignals =
-            [root, _nullifiersHash, _signalHash, _externalNullifier];
+            [root, _nullifiersHash, _signalHash, externalNullifier];
 
         (uint256[2] memory a, uint256[2][2] memory b, uint256[2] memory c) =
             unpackProof(_proof);
@@ -173,7 +162,6 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
             nullifierHashHistory[_nullifiersHash] == false &&
             hashSignal(_signal) == _signalHash &&
             _signalHash == hashSignal(_signal) &&
-            isExternalNullifierActive(_externalNullifier) &&
             areAllValidFieldElements(_proof) &&
             root < SNARK_SCALAR_FIELD &&
             _nullifiersHash < SNARK_SCALAR_FIELD &&
@@ -189,10 +177,9 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
      * @param _externalNullifier The external nullifier
      */
     modifier isValidSignalAndProof(
-        bytes memory _signal,
+        bytes32 _signal,
         uint256[8] memory _proof,
-        uint256 _nullifiersHash,
-        uint232 _externalNullifier
+        uint256 _nullifiersHash
     ) {
         // Check whether each element in _proof is a valid field element. Even
         // if verifier.sol does this check too, it is good to do so here for
@@ -208,12 +195,6 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
             "Semaphore: nullifier already seen"
         );
 
-        // Check whether the nullifier hash is active
-        require(
-            isExternalNullifierActive(_externalNullifier),
-            "Semaphore: external nullifier not found"
-        );
-
         uint256 signalHash = hashSignal(_signal);
 
         // Check whether _nullifiersHash is a valid field element.
@@ -223,7 +204,7 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
         );
 
         uint256[4] memory publicSignals =
-            [root, _nullifiersHash, signalHash, _externalNullifier];
+            [root, _nullifiersHash, signalHash, externalNullifier];
 
         (uint256[2] memory a, uint256[2][2] memory b, uint256[2] memory c) =
             unpackProof(_proof);
@@ -249,19 +230,10 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
      * @param _externalNullifier The nullifiers hash (the 4th public signal)
      */
     function broadcastSignal(
-        bytes memory _signal,
+        bytes32 _signal,
         uint256[8] memory _proof,
-        uint256 _nullifiersHash,
-        uint232 _externalNullifier
-    )
-        internal
-        isValidSignalAndProof(
-            _signal,
-            _proof,
-            _nullifiersHash,
-            _externalNullifier
-        )
-    {
+        uint256 _nullifiersHash
+    ) internal isValidSignalAndProof(_signal, _proof, _nullifiersHash) {
         // Client contracts should be responsible for storing the signal and/or
         // emitting it as an event
 
@@ -273,73 +245,22 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
      * A private helper function which adds an external nullifier.
      * @param _externalNullifier The external nullifier to add.
      */
-    function addEn(uint232 _externalNullifier) private {
+    function addEn(uint256 _externalNullifier) private {
         // The external nullifier must not have already been set
         require(
-            externalNullifiers[_externalNullifier] == false,
+            externalNullifier == 0,
             "Semaphore: external nullifier already set"
         );
 
         // Add a new external nullifier
-        externalNullifiers[_externalNullifier] = true;
-    }
-
-    /*
-     * Adds an external nullifier to the contract. This external nullifier is
-     * active once it is added. Only the owner can do this.
-     * @param _externalNullifier The new external nullifier to set.
-     */
-    function activateExternalNullifier(uint232 _externalNullifier)
-        internal
-        onlyOwner
-    {
-        addEn(_externalNullifier);
-    }
-
-    /*
-     * Deactivate an external nullifier. The external nullifier must already be
-     * active for this function to work. Only the owner can do this.
-     * @param _externalNullifier The new external nullifier to deactivate.
-     */
-    function deactivateExternalNullifier(uint232 _externalNullifier)
-        internal
-        onlyOwner
-    {
-        // The external nullifier must already exist
-        require(
-            externalNullifiers[_externalNullifier],
-            "Semaphore: external nullifier not found"
-        );
-
-        // Deactivate the external nullifier. Note that we don't change the
-        // value of nextEn.
-        externalNullifiers[_externalNullifier] = false;
+        externalNullifier = _externalNullifier;
     }
 
     /*
      * Returns true if and only if the specified external nullifier is active
      * @param _externalNullifier The specified external nullifier.
      */
-    function isExternalNullifierActive(uint232 _externalNullifier)
-        internal
-        view
-        returns (bool)
-    {
-        return externalNullifiers[_externalNullifier];
-    }
-
-    /*
-     * Returns the number of inserted identity commitments.
-     */
-    function getNumIdentityCommitments() public view returns (uint256) {
-        return nextLeafIndex;
-    }
-
-    function getIdentityCommitment(uint256 _index)
-        public
-        view
-        returns (uint256)
-    {
-        return leaves[_index];
+    function getActiveExternalNullifier() external view returns (uint256) {
+        return externalNullifier;
     }
 }

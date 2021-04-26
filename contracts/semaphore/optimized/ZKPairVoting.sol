@@ -60,11 +60,9 @@ contract ZKPairVoting is SemaphoreOpt {
     // this modifier first, otherwise the guards
     // will not take the new stage into account.
     modifier timedTransitions() {
-        if (state == States.Proposal && block.timestamp >= proposalDeadline) {
+        if (changableToVoting()) {
             toVotingState();
-        } else if (
-            state == States.Voting && block.timestamp >= votingDeadline
-        ) {
+        } else if (changableToCompleted()) {
             toCompletedState();
         }
         // The other stages transition by transaction
@@ -75,9 +73,8 @@ contract ZKPairVoting is SemaphoreOpt {
         uint256 _treeLevels,
         uint256 _maxProposalCount,
         uint256 proposalLifetime,
-        uint256 _votingLifetime,
-        uint232 _firstExternalNullifier
-    ) SemaphoreOpt(_treeLevels, _firstExternalNullifier) {
+        uint256 _votingLifetime
+    ) SemaphoreOpt(_treeLevels) {
         require(
             maxProposalCount <= MAX_PROPOSAL_CAP,
             "maxProposalCount is too high!"
@@ -92,7 +89,18 @@ contract ZKPairVoting is SemaphoreOpt {
         state = _state;
     }
 
+    function toNextState() external {
+        if (changableToVoting()) {
+            toVotingState();
+        } else if (changableToCompleted()) {
+            toCompletedState();
+        } else {
+            revert("Not changable to next state!");
+        }
+    }
+
     function toProposalState() public onlyOwner {
+        require(state == States.Register, "Cannot change state to Proposal!");
         toState(States.Proposal);
         emit StateChanged(States.Register, States.Proposal);
     }
@@ -129,10 +137,6 @@ contract ZKPairVoting is SemaphoreOpt {
         emit VoterCommitsAdded(msg.sender, _identityCommitments, _root);
     }
 
-    function getIdCommitments() public view returns (uint256[] memory) {
-        return getLeaves();
-    }
-
     function propose(string calldata _proposal)
         external
         eligibleProposer
@@ -156,22 +160,16 @@ contract ZKPairVoting is SemaphoreOpt {
         uint256 rank,
         bytes32 _signal,
         uint256[8] memory _proof,
-        uint256 _nullifiersHash,
-        uint232 _externalNullifier
+        uint256 _nullifiersHash
     ) external timedTransitions atState(States.Voting) {
-        require(keccak256(abi.encode(rank)) == _signal);
-        broadcastSignal(
-            abi.encode(_signal),
-            _proof,
-            _nullifiersHash,
-            _externalNullifier
-        );
+        require(keccak256(abi.encodePacked(rank)) == _signal);
+        broadcastSignal(_signal, _proof, _nullifiersHash);
         if (voteCounts[rank] == 0) {
             ranks.push(rank);
         }
         voteCounts[rank]++;
         votedCount++;
-        if (votedCount == voterCount()) {
+        if (votedCount == getLeavesNum()) {
             toCompletedState();
         }
     }
@@ -209,15 +207,19 @@ contract ZKPairVoting is SemaphoreOpt {
         return proposers[account];
     }
 
-    function voterCount() public view returns (uint256) {
-        return getNumIdentityCommitments();
-    }
-
     function currentState() external view returns (string memory) {
         if (state == States.Register) return "Register";
         if (state == States.Proposal) return "Proposal";
         if (state == States.Voting) return "Voting";
         if (isCompletedState()) return "Completed";
+        return "";
+    }
+
+    function currentRealState() external view returns (string memory) {
+        if (isCompletedState()) return "Completed";
+        if (isVotingState()) return "Voting";
+        if (state == States.Proposal) return "Proposal";
+        if (state == States.Register) return "Register";
         return "";
     }
 
@@ -406,7 +408,19 @@ contract ZKPairVoting is SemaphoreOpt {
     }
 
     function isCompletedState() private view returns (bool) {
-        return state == States.Completed || block.timestamp >= votingDeadline;
+        return state == States.Completed || changableToCompleted();
+    }
+
+    function isVotingState() private view returns (bool) {
+        return state == States.Voting || changableToVoting();
+    }
+
+    function changableToVoting() private view returns (bool) {
+        return state == States.Proposal && block.timestamp >= proposalDeadline;
+    }
+
+    function changableToCompleted() private view returns (bool) {
+        return state == States.Voting && block.timestamp >= votingDeadline;
     }
 
     function initMultiArray(uint256 size)

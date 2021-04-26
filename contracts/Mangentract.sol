@@ -161,6 +161,6 @@ contract Mangentract is AccessControlEnumerable, Stoppable {
 
     function _stopContract(string memory reason) private {
         _stop();
-        ContractStopped(reason);
+        emit ContractStopped(reason);
     }
 }
