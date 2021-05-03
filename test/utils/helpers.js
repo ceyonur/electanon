@@ -1,4 +1,15 @@
-advanceTime = (time) => {
+const {
+  genVoteSignalParams,
+  genPublicSignals,
+  genProof,
+  genVoteWitness,
+  genTree,
+  genIdentityCommitment,
+  genIdentity,
+} = require("libsemaphore");
+const readline = require("readline");
+
+function advanceTime(time) {
   return new Promise((resolve, reject) => {
     web3.currentProvider.send(
       {
@@ -15,9 +26,9 @@ advanceTime = (time) => {
       }
     );
   });
-};
+}
 
-advanceBlock = () => {
+function advanceBlock() {
   return new Promise((resolve, reject) => {
     web3.currentProvider.send(
       {
@@ -35,9 +46,9 @@ advanceBlock = () => {
       }
     );
   });
-};
+}
 
-takeSnapshot = () => {
+function takeSnapshot() {
   return new Promise((resolve, reject) => {
     web3.currentProvider.send(
       {
@@ -53,9 +64,9 @@ takeSnapshot = () => {
       }
     );
   });
-};
+}
 
-revertToSnapShot = (id) => {
+function revertToSnapShot(id) {
   return new Promise((resolve, reject) => {
     web3.currentProvider.send(
       {
@@ -72,13 +83,13 @@ revertToSnapShot = (id) => {
       }
     );
   });
-};
+}
 
-advanceTimeAndBlock = async (time) => {
+async function advanceTimeAndBlock(time) {
   await advanceTime(time);
   await advanceBlock();
   return Promise.resolve(web3.eth.getBlock("latest"));
-};
+}
 
 function wait(query) {
   const rl = readline.createInterface({
@@ -93,6 +104,95 @@ function wait(query) {
   );
 }
 
+async function setupProposers(sender, proposers, contract) {
+  await contract.addProposers(proposers, {
+    from: sender,
+  });
+  await contract.toProposalState({ from: sender });
+}
+
+async function voteWithArray(
+  votes,
+  sender,
+  contract,
+  id,
+  leaves,
+  numLevel,
+  extNullifier,
+  circuit,
+  provingKey
+) {
+  const rank = await contract.getRank.call(votes);
+  let params = await setupZKParams(
+    rank,
+    id,
+    leaves,
+    numLevel,
+    extNullifier,
+    circuit,
+    provingKey
+  );
+  await contract.vote(
+    rank,
+    params.signal,
+    params.proof,
+    params.nullifiersHash,
+    {
+      from: sender,
+    }
+  );
+}
+
+async function setupVoters(number, sender, contract) {
+  let idCommits = [];
+  let ids = [];
+  for (let i = 0; i < number; i++) {
+    let identity = genIdentity();
+    let identityCommitment = genIdentityCommitment(identity);
+    idCommits.push(identityCommitment.toString());
+    ids.push(identity);
+  }
+  let level = await contract.getTreeLevel();
+  let tree = await genTree(level, idCommits);
+  let root = await tree.root();
+  await contract.addIdCommitments(idCommits, root, {
+    from: sender,
+  });
+  return ids;
+}
+
+async function setupZKParams(
+  vote,
+  identity,
+  leaves,
+  numLevel,
+  externalNull,
+  circuit,
+  provingKey
+) {
+  const result = await genVoteWitness(
+    vote,
+    circuit,
+    identity,
+    leaves,
+    numLevel,
+    externalNull
+  );
+
+  let proof = await genProof(result.witness, provingKey);
+  let publicSignals = await genPublicSignals(result.witness, circuit);
+  let params = await genVoteSignalParams(result, proof, publicSignals);
+  return params;
+}
+
+async function setupProposals(contract, accounts, count = 3) {
+  for (let i = 0; i < count; i++) {
+    await contract.propose(web3.utils.fromAscii("platform" + i + 1), {
+      from: accounts[i],
+    });
+  }
+}
+
 module.exports = {
   advanceTime,
   advanceBlock,
@@ -100,6 +200,9 @@ module.exports = {
   takeSnapshot,
   revertToSnapShot,
   wait,
+  voteWithArray,
+  setupZKParams,
+  setupVoters,
+  setupProposers,
+  setupProposals,
 };
-
-const readline = require("readline");

@@ -5,7 +5,6 @@ const SemaphoreOptTest = artifacts.require(
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
 const expect = chai.expect;
-const truffleAssert = require("truffle-assertions");
 
 chai.use(chaiAsPromised);
 chai.use(require("chai-string"));
@@ -20,7 +19,6 @@ const {
   genPublicSignals,
   verifyProof,
   parseVerifyingKeyJson,
-  genBroadcastSignalParams,
   genSignalHash,
   genExternalNullifier,
   genVoterSignal,
@@ -79,8 +77,8 @@ contract("SemaphoreOpt", (accounts) => {
   });
 
   it("insert multiple identity commitments", async () => {
-    identities = [];
-    identityCommitments = [];
+    let identities = [];
+    let identityCommitments = [];
     const count = 10;
     for (let i = 0; i < count; i++) {
       const identity = genIdentity();
@@ -212,6 +210,8 @@ contract("signal broadcasts", (accounts) => {
   });
 
   it("the proof should be valid", async () => {
+    console.log(proof);
+    console.log(publicSignals);
     const isValid = verifyProof(verifyingKey, proof, publicSignals);
     expect(isValid).to.be.true;
   });
