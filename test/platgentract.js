@@ -1,4 +1,4 @@
-const Platgentract = artifacts.require("Platgentract");
+const PairVoting = artifacts.require("PairVoting");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -13,11 +13,11 @@ const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const VOTING_LIFETIME = moment.duration(30, "days").asSeconds();
 const MAX_PROPOSAL_COUNT = 4;
 
-contract("Platgentract", (accounts) => {
+contract("PairVoting", (accounts) => {
   beforeEach(async () => {
     this.initialManagers = accounts.slice(1, 4);
     this.owner = accounts[0];
-    this.contract = await Platgentract.new(
+    this.contract = await PairVoting.new(
       this.initialManagers,
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,
@@ -213,11 +213,11 @@ contract("Platgentract", (accounts) => {
   // });
 });
 
-contract("Platgentract election", (accounts) => {
+contract("PairVoting election", (accounts) => {
   beforeEach(async () => {
     this.initialManagers = accounts;
     this.owner = accounts[0];
-    this.contract = await Platgentract.new(
+    this.contract = await PairVoting.new(
       this.initialManagers,
       5,
       PROPOSAL_LIFETIME,

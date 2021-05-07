@@ -47,7 +47,7 @@ contract("IncrementalMerkleTree ", () => {
       await IncrementalMerkleTreeClient.new(0, ZERO_VALUE);
     } catch (e) {
       expect(
-        e.message.endsWith(
+        e.message)to.endsWith(
           "IncrementalMerkleTree: _treeLevels must be between 0 and 33"
         )
       );
@@ -59,7 +59,7 @@ contract("IncrementalMerkleTree ", () => {
       await IncrementalMerkleTreeClient.new(33, ZERO_VALUE);
     } catch (e) {
       expect(
-        e.message.endsWith(
+        e.message)to.endsWith(
           "IncrementalMerkleTree: _treeLevels must be between 0 and 33"
         )
       );
@@ -73,7 +73,7 @@ contract("IncrementalMerkleTree ", () => {
       await mtContract.insertLeafAsClient(leaf);
     } catch (e) {
       expect(
-        e.message.endsWith(
+        e.message)to.endsWith(
           "IncrementalMerkleTree: insertLeaf argument must be < SNARK_SCALAR_FIELD"
         )
       );

@@ -6,6 +6,7 @@ const {
   genTree,
   genIdentityCommitment,
   genIdentity,
+  genPrivateVoteWitness,
 } = require("libsemaphore");
 const readline = require("readline");
 
@@ -36,7 +37,7 @@ function advanceBlock() {
         method: "evm_mine",
         id: new Date().getTime(),
       },
-      (err, result) => {
+      (err) => {
         if (err) {
           return reject(err);
         }
@@ -193,6 +194,66 @@ async function setupProposals(contract, accounts, count = 3) {
   }
 }
 
+async function setupZKParamsPrivate(
+  vote,
+  password,
+  identity,
+  leaves,
+  numLevel,
+  externalNull,
+  circuit,
+  provingKey
+) {
+  const result = await genPrivateVoteWitness(
+    vote,
+    password,
+    circuit,
+    identity,
+    leaves,
+    numLevel,
+    externalNull
+  );
+
+  let proof = await genProof(result.witness, provingKey);
+  let publicSignals = await genPublicSignals(result.witness, circuit);
+  let params = await genVoteSignalParams(result, proof, publicSignals);
+  return params;
+}
+
+async function voteWithArrayPrivate(
+  votes,
+  password,
+  sender,
+  contract,
+  id,
+  leaves,
+  numLevel,
+  extNullifier,
+  circuit,
+  provingKey
+) {
+  const rank = await contract.getRank.call(votes);
+  let params = await setupZKParamsPrivate(
+    rank,
+    password,
+    id,
+    leaves,
+    numLevel,
+    extNullifier,
+    circuit,
+    provingKey
+  );
+  await contract.commitVote(
+    params.signal,
+    params.proof,
+    params.nullifiersHash,
+    {
+      from: sender,
+    }
+  );
+  return rank;
+}
+
 module.exports = {
   advanceTime,
   advanceBlock,
@@ -205,4 +266,6 @@ module.exports = {
   setupVoters,
   setupProposers,
   setupProposals,
+  setupZKParamsPrivate,
+  voteWithArrayPrivate,
 };

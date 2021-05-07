@@ -1,4 +1,4 @@
-const Platgentract = artifacts.require("Platgentract");
+const PairVoting = artifacts.require("PairVoting");
 const Ballot = artifacts.require("analysis/Ballot");
 
 const chai = require("chai");
@@ -17,9 +17,9 @@ console.log(
   "ProposalCount: " + proposalCount + ", ManagerCount: " + managerCount
 );
 
-contract("Platgentract", (accounts) => {
+contract("PairVoting", (accounts) => {
   beforeEach(async () => {
-    this.contract = await Platgentract.new(
+    this.contract = await PairVoting.new(
       accounts.slice(0, managerCount),
       proposalCount,
       PROPOSAL_LIFETIME,

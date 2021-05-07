@@ -248,7 +248,7 @@ contract("signal broadcasts", (accounts) => {
         oversizedInput
       );
     } catch (e) {
-      expect(e.message).endsWith(
+      expect(e.message).to.endsWith(
         "Semaphore: the nullifiers hash must be lt the snark scalar field"
       );
     }
@@ -271,7 +271,7 @@ contract("signal broadcasts", (accounts) => {
         params.nullifiersHash
       );
     } catch (e) {
-      expect(e.message).endsWith(
+      expect(e.message))to.endsWith(
         "Semaphore: invalid field element(s) in proof"
       );
     }
@@ -321,7 +321,7 @@ contract("signal broadcasts", (accounts) => {
         params.nullifiersHash
       );
     } catch (e) {
-      expect(e.message).endsWith("Semaphore: nullifier already seen");
+      expect(e.message))to.endsWith("Semaphore: nullifier already seen");
     }
   });
 

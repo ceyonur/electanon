@@ -208,7 +208,6 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
 
         (uint256[2] memory a, uint256[2][2] memory b, uint256[2] memory c) =
             unpackProof(_proof);
-
         require(
             verifyProof(a, b, c, publicSignals),
             "Semaphore: invalid proof"

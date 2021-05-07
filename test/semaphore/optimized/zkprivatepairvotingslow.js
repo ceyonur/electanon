@@ -1,4 +1,4 @@
-const ZKPairVoting = artifacts.require("ZKPairVoting");
+const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVoting");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -9,19 +9,22 @@ chai.use(chaiAsPromised);
 chai.use(require("chai-string"));
 
 const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
-const VOTING_LIFETIME = moment.duration(30, "days").asSeconds();
+const COMMIT_LIFETIME = moment.duration(30, "days").asSeconds();
+const REVEAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const TREE_LEVEL = 20;
+const PASSWORD = "password";
 const {
-  voteWithArray,
   setupProposals,
   setupVoters,
   setupProposers,
   advanceTimeAndBlock,
+  voteWithArrayPrivate,
 } = require("../../utils/helpers");
+
+const { genCircuit, passwordToSalt } = require("libsemaphore");
 
 const path = require("path");
 const fs = require("fs");
-const { genCircuit } = require("libsemaphore");
 const circuitPath = path.join(__dirname, "../../../circuits/circuit.json");
 const provingKeyPath = path.join(
   __dirname,
@@ -35,11 +38,12 @@ const circuit = genCircuit(cirDef);
 contract("ZKPairVoting election result", (accounts) => {
   before(async () => {
     this.owner = accounts[0];
-    this.contract = await ZKPairVoting.new(
+    this.contract = await ZKPrivatePairVoting.new(
       TREE_LEVEL,
       5,
       PROPOSAL_LIFETIME,
-      VOTING_LIFETIME,
+      COMMIT_LIFETIME,
+      REVEAL_LIFETIME,
       {
         from: this.owner,
       }
@@ -52,9 +56,11 @@ contract("ZKPairVoting election result", (accounts) => {
     this.extNullifier = await this.contract.getActiveExternalNullifier();
   });
   it("should be able to announce election result correctly", async () => {
+    let votes = [];
     for (let i = 0; i < 3; i++) {
-      await voteWithArray(
+      let vote = await voteWithArrayPrivate(
         [1, 2, 3, 4, 5],
+        PASSWORD + i,
         accounts[i],
         this.contract,
         this.ids[i],
@@ -64,11 +70,13 @@ contract("ZKPairVoting election result", (accounts) => {
         circuit,
         provingKey
       );
+      votes[i] = vote;
     }
 
     for (let i = 3; i < 5; i++) {
-      await voteWithArray(
+      let vote = await voteWithArrayPrivate(
         [2, 1, 4, 5, 3],
+        PASSWORD + i,
         accounts[i],
         this.contract,
         this.ids[i],
@@ -78,11 +86,13 @@ contract("ZKPairVoting election result", (accounts) => {
         circuit,
         provingKey
       );
+      votes[i] = vote;
     }
 
     for (let i = 5; i < 6; i++) {
-      await voteWithArray(
+      let vote = await voteWithArrayPrivate(
         [2, 3, 4, 1, 5],
+        PASSWORD + i,
         accounts[i],
         this.contract,
         this.ids[i],
@@ -92,11 +102,13 @@ contract("ZKPairVoting election result", (accounts) => {
         circuit,
         provingKey
       );
+      votes[i] = vote;
     }
 
     for (let i = 6; i < 8; i++) {
-      await voteWithArray(
+      let vote = await voteWithArrayPrivate(
         [2, 3, 5, 4, 1],
+        PASSWORD + i,
         accounts[i],
         this.contract,
         this.ids[i],
@@ -106,11 +118,13 @@ contract("ZKPairVoting election result", (accounts) => {
         circuit,
         provingKey
       );
+      votes[i] = vote;
     }
 
     for (let i = 8; i < 10; i++) {
-      await voteWithArray(
+      let vote = await voteWithArrayPrivate(
         [2, 3, 5, 4, 1],
+        PASSWORD + i,
         accounts[i],
         this.contract,
         this.ids[i],
@@ -120,9 +134,16 @@ contract("ZKPairVoting election result", (accounts) => {
         circuit,
         provingKey
       );
+      votes[i] = vote;
     }
 
-    await advanceTimeAndBlock(VOTING_LIFETIME + 60);
+    for (let i = 0; i < 10; i++) {
+      let password32 = passwordToSalt(PASSWORD + i);
+      await this.contract.revealVote(votes[i], password32, {
+        from: accounts[i],
+      });
+    }
+
     const result = await this.contract.electionResult.call();
     expect(result.toNumber()).to.equal(2);
   }).timeout(0);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract Platgentract {
+contract PairVoting {
     event Proposed(
         uint256 indexed _id,
         address indexed _from,

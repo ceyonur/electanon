@@ -1,4 +1,4 @@
-const Platgentract = artifacts.require("Platgentract");
+const PairVoting = artifacts.require("PairVoting");
 
 const moment = require("moment");
 const helper = require("../test/utils/helpers.js");
@@ -12,7 +12,7 @@ module.exports = function (deployer, network, accounts) {
     try {
       let initialManagers = accounts;
       let contract = await deployer.deploy(
-        Platgentract,
+        PairVoting,
         initialManagers,
         5,
         PROPOSAL_LIFETIME,

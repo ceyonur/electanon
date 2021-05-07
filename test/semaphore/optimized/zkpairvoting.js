@@ -6,6 +6,8 @@ const moment = require("moment");
 
 const expect = chai.expect;
 chai.use(chaiAsPromised);
+chai.use(require("chai-string"));
+
 const truffleAssert = require("truffle-assertions");
 
 const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
