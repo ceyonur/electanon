@@ -17,7 +17,6 @@ const {
   setupProposals,
   setupVoters,
   setupProposers,
-  advanceTimeAndBlock,
   voteWithArrayPrivate,
 } = require("../../utils/helpers");
 

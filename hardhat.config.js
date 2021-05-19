@@ -28,7 +28,6 @@ module.exports = {
     enabled: process.env.REPORT_GAS ? true : false,
     showTimeSpent: true,
     coinmarketcap: "b3e6d4ea-901c-4c3d-907f-3df1d2309d4c",
-    gasPrice: 150,
   },
   networks: {
     hardhat: {

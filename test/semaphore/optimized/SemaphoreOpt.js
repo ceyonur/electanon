@@ -187,10 +187,9 @@ contract("signal broadcasts", (accounts) => {
     let level = await semaphoreContract.getTreeLevel();
     let tree = await genTree(level, [identityCommitment.toString()]);
     let root = await tree.root();
-
     await semaphoreContract.addIdCommitment(
       identityCommitment.toString(),
-      root
+      BigInt(root)
     );
 
     let leaves = await semaphoreContract.getLeaves();
@@ -210,8 +209,6 @@ contract("signal broadcasts", (accounts) => {
   });
 
   it("the proof should be valid", async () => {
-    console.log(proof);
-    console.log(publicSignals);
     const isValid = verifyProof(verifyingKey, proof, publicSignals);
     expect(isValid).to.be.true;
   });
@@ -271,7 +268,7 @@ contract("signal broadcasts", (accounts) => {
         params.nullifiersHash
       );
     } catch (e) {
-      expect(e.message))to.endsWith(
+      expect(e.message).to.endsWith(
         "Semaphore: invalid field element(s) in proof"
       );
     }
@@ -321,7 +318,7 @@ contract("signal broadcasts", (accounts) => {
         params.nullifiersHash
       );
     } catch (e) {
-      expect(e.message))to.endsWith("Semaphore: nullifier already seen");
+      expect(e.message).to.endsWith("Semaphore: nullifier already seen");
     }
   });
 

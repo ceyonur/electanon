@@ -184,6 +184,7 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
         // Check whether each element in _proof is a valid field element. Even
         // if verifier.sol does this check too, it is good to do so here for
         // the sake of good protocol design.
+        //TODO: removeable
         require(
             areAllValidFieldElements(_proof),
             "Semaphore: invalid field element(s) in proof"

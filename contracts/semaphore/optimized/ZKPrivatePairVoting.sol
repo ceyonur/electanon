@@ -14,7 +14,13 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         uint256 _stateDeadline
     );
     event ProposersAdded(address indexed _sender, address[] proposers);
-    event VoterCommitsAdded(
+    event VoterIdCommitsAdded(
+        address indexed _sender,
+        uint256[] voterCommits,
+        uint256 indexed _root
+    );
+
+    event VoterTreeReplaced(
         address indexed _sender,
         uint256[] voterCommits,
         uint256 indexed _root
@@ -138,7 +144,15 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         uint256 _root
     ) external atState(States.Register) onlyOwner {
         insertLeaves(_identityCommitments, _root);
-        emit VoterCommitsAdded(msg.sender, _identityCommitments, _root);
+        emit VoterIdCommitsAdded(msg.sender, _identityCommitments, _root);
+    }
+
+    function replaceIdCommitmentsTree(
+        uint256[] memory _identityCommitments,
+        uint256 _root
+    ) external atState(States.Register) onlyOwner {
+        replaceTree(_identityCommitments, _root);
+        emit VoterTreeReplaced(msg.sender, _identityCommitments, _root);
     }
 
     function propose(string calldata _proposal)
@@ -256,6 +270,19 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         return "";
     }
 
+    function getRank(uint256[] memory vec) public pure returns (uint256) {
+        uint256 n = vec.length;
+        uint256[] memory v = new uint256[](n);
+        uint256[] memory inv = new uint256[](n);
+
+        for (uint256 i = 0; i < n; i++) {
+            v[i] = vec[i];
+            inv[vec[i] - 1] = i + 1;
+        }
+        uint256 r = _mr_rank1(n, v, inv);
+        return r;
+    }
+
     /// PRIVATE CODE
 
     // Perform timed transitions. Be sure to mention
@@ -319,19 +346,6 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
             result[i] = i + 1;
         }
         return result;
-    }
-
-    function getRank(uint256[] memory vec) public pure returns (uint256) {
-        uint256 n = vec.length;
-        uint256[] memory v = new uint256[](n);
-        uint256[] memory inv = new uint256[](n);
-
-        for (uint256 i = 0; i < n; i++) {
-            v[i] = vec[i];
-            inv[vec[i] - 1] = i + 1;
-        }
-        uint256 r = _mr_rank1(n, v, inv);
-        return r;
     }
 
     //https://rosettacode.org/wiki/Permutations/Rank_of_a_permutation

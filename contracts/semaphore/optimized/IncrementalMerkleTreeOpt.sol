@@ -42,12 +42,6 @@ abstract contract IncrementalMerkleTreeOpt {
     // The Merkle root
     uint256 public root;
 
-    event LeavesInsertion(
-        uint256 indexed startIndex,
-        uint256 indexed endIndex,
-        uint256 indexed root
-    );
-
     /*
      * Stores the Merkle root and intermediate values (the Merkle path to the
      * the first leaf) assuming that all leaves are set to _zeroValue.
@@ -86,12 +80,31 @@ abstract contract IncrementalMerkleTreeOpt {
             leaves.push(_leaves[i]);
         }
         root = _root;
-        emit LeavesInsertion(
-            leavesLength,
-            leavesLength + _leaves.length,
-            _root
-        );
+
         return (leavesLength, leavesLength + _leaves.length);
+    }
+
+    function replaceTree(uint256[] memory _leaves, uint256 _root)
+        internal
+        returns (uint256)
+    {
+        uint256 depth = uint256(treeLevels);
+        require(
+            _leaves.length < uint256(2)**depth,
+            "IncrementalMerkleTree: tree is full"
+        );
+        for (uint256 i = 0; i < _leaves.length; i++) {
+            require(
+                _leaves[i] < MAX_SNARK_SCALAR_FIELD,
+                "IncrementalMerkleTree: insertLeaves argument must be < MAX_SNARK_SCALAR_FIELD"
+            );
+        }
+
+        leaves = _leaves;
+
+        root = _root;
+
+        return _leaves.length;
     }
 
     function insertLeaf(uint256 _leaf, uint256 _root)
@@ -115,7 +128,6 @@ abstract contract IncrementalMerkleTreeOpt {
 
         root = _root;
 
-        emit LeavesInsertion(leavesLength, leavesLength + 1, _root);
         return leavesLength + 1;
     }
 

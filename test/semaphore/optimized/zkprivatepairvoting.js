@@ -107,6 +107,31 @@ contract("ZKPrivatePairVoting", (accounts) => {
     expect(contractRoot.toString()).to.be.equal(root);
   });
 
+  it("should replace id commitments", async () => {
+    let idCommits = [];
+    for (let i = 0; i < 3; i++) {
+      let identity = genIdentity();
+      let identityCommitment = genIdentityCommitment(identity);
+      idCommits.push(identityCommitment.toString());
+    }
+    let level = await this.contract.getTreeLevel();
+    let tree = await genTree(level, idCommits);
+    let root = await tree.root();
+    await this.contract.replaceIdCommitmentsTree(idCommits, root, {
+      from: this.owner,
+    });
+    const leaves = await this.contract.getLeaves();
+    expect(leaves.length).equal(idCommits.length);
+
+    const leavesHex = leaves.map(BigInt);
+    for (let i = 0; i < idCommits.length; i++) {
+      const containsLeaf = leavesHex.indexOf(BigInt(idCommits[i])) > -1;
+      expect(containsLeaf).to.be.true;
+    }
+    let contractRoot = await this.contract.getRoot();
+    expect(contractRoot.toString()).to.be.equal(root);
+  });
+
   it("should not add proposer or id commitments for non owner", async () => {
     try {
       await this.contract.addProposers(this.initialManagers, {
