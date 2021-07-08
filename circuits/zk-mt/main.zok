@@ -1,0 +1,63 @@
+from "EMBED" import u64_from_bits
+import "utils/pack/bool/nonStrictUnpack256" as unpack256bool
+import "hashes/keccak/256bit" as keccak
+import "hashes/mimcSponge/mimcSponge" as mimc
+import "utils/pack/bool/pack" as pack
+
+const u32 SIZE = 256
+
+const u32 QSIZE = SIZE + 1
+const u32 USIZE = SIZE * 4
+
+def enQueue<N>(field value, field[N]queue, u32 tail, u32 head) -> (field[N], u32, u32):
+    assert((tail + 1) % N != head )
+    queue[tail] = value
+    tail = (tail + 1) % N
+    return queue, tail, head
+
+
+def deQueue<N>(field[N]queue, u32 tail, u32 head) -> (field, field[N], u32, u32):
+    assert(head != tail)
+    field result = queue[head]
+    queue[head] = 0
+    head = (head + 1) % N
+    return result, queue, tail, head
+
+def bool_to_u64_arr<N, P>(bool[N] bits) -> u64[P]:
+	assert(N == 64 * P)
+	u64[P] res = [0; P]
+	for u32 i in 0..P do
+		res[i] = u64_from_bits(bits[64 * i..64 * (i + 1)])
+	endfor
+    return res
+
+
+def main(private field[SIZE] inputs) -> (field, u64[4]):
+    // assert size % 2 == 0
+    field[QSIZE] queue = [...inputs, 0]
+    u32 tail = SIZE
+    u32 head = 0
+    field root = 0
+    for u32 i in 0..SIZE - 1 do
+        //calc root
+        field left, queue, tail, head = deQueue(queue, tail, head)
+        field right, queue, tail, head = deQueue(queue, tail, head)
+        field[3] hashed = mimc([left,right],0)
+        root = hashed[0]
+        queue, tail, head = enQueue(root, queue, tail, head)
+    endfor
+
+    // calc keccak hash
+    u64[USIZE] uarr = [0;USIZE]
+    for u32 i in 0..SIZE do
+    bool[256] b = unpack256bool(inputs[i])
+    u64[4] u = bool_to_u64_arr(b)
+        for u32 k in 0..4 do
+            uarr[(i*4)+k] = u[k]
+        endfor
+    endfor
+
+    // // hash
+     u64[4] digest = keccak(uarr)
+
+    return root, digest
