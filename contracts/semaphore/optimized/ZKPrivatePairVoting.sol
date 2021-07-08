@@ -30,7 +30,7 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
     States state;
 
     uint256 constant MAX_PROPOSAL_CAP = 30;
-    uint256 proposalIdCt = 0;
+    uint256 proposalIdCt;
     uint256 deadline;
     uint256 maxProposalCount;
     uint256 proposalLifetime;
@@ -38,10 +38,10 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
     uint256 revealLifetime;
 
     mapping(address => bool) proposers;
-    uint256 proposerCount = 0;
+    uint256 proposerCount;
     mapping(uint256 => uint256) voteCounts;
-    uint256 committedCount = 0;
-    uint256 votedCount = 0;
+    uint256 committedCount;
+    uint256 votedCount;
     mapping(address => bytes32) secrets;
     uint256[] ranks;
 

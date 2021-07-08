@@ -115,8 +115,6 @@ build/
 
 .DS_Store
 
-circuits/circuit.json
-circuits/proving_key.bin
-circuits/verification_key.json
+circuits/build/*
 contracts/semaphore/verifier.sol
 scripts/*.json
