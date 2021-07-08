@@ -22,7 +22,7 @@
 
 pragma solidity ^0.8.0;
 
-import {MiMC} from "./MiMC.sol";
+import {MiMC} from "../libs/MiMC.sol";
 
 abstract contract IncrementalMerkleTree {
     uint256 constant MAX_SNARK_SCALAR_FIELD =
