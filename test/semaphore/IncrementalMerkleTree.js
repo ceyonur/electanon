@@ -18,7 +18,7 @@ const {
   setupTree,
 } = require("libsemaphore");
 
-const LEVELS = 20;
+const LEVELS = 10;
 let tree;
 
 const ZERO_VALUE = web3.utils.keccak256("Semaphore");
@@ -46,10 +46,8 @@ contract("IncrementalMerkleTree ", () => {
     try {
       await IncrementalMerkleTreeClient.new(0, ZERO_VALUE);
     } catch (e) {
-      expect(
-        e.message)to.endsWith(
-          "IncrementalMerkleTree: _treeLevels must be between 0 and 33"
-        )
+      expect(e.message).to.endsWith(
+        "IncrementalMerkleTree: _treeLevels must be between 0 and 33"
       );
     }
   });
@@ -58,10 +56,8 @@ contract("IncrementalMerkleTree ", () => {
     try {
       await IncrementalMerkleTreeClient.new(33, ZERO_VALUE);
     } catch (e) {
-      expect(
-        e.message)to.endsWith(
-          "IncrementalMerkleTree: _treeLevels must be between 0 and 33"
-        )
+      expect(e.message).to.endsWith(
+        "IncrementalMerkleTree: _treeLevels must be between 0 and 33"
       );
     }
   });
@@ -72,10 +68,8 @@ contract("IncrementalMerkleTree ", () => {
     try {
       await mtContract.insertLeafAsClient(leaf);
     } catch (e) {
-      expect(
-        e.message)to.endsWith(
-          "IncrementalMerkleTree: insertLeaf argument must be < SNARK_SCALAR_FIELD"
-        )
+      expect(e.message).to.endsWith(
+        "IncrementalMerkleTree: insertLeaf argument must be < MAX_SNARK_SCALAR_FIELD"
       );
     }
   });

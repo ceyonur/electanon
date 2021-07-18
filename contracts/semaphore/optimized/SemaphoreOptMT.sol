@@ -21,11 +21,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../verifier.sol";
-import {IncrementalMerkleTreeOpt} from "./IncrementalMerkleTreeOpt.sol";
+import {Verifier} from "../verifier.sol";
 import "../Ownable.sol";
+import "./BatchableMerkleForest.sol";
 
-contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
+contract SemaphoreOptMT is Verifier, BatchableMerkleForest, Ownable {
     // The external nullifier helps to prevent double-signalling by the same
     // user. An external nullifier can be active or deactivated.
 
@@ -41,10 +41,7 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
      * @param _treeLevels The depth of the identity tree.
      * @param _firstExternalNullifier The first identity nullifier to add.
      */
-    constructor(uint256 _treeLevels)
-        IncrementalMerkleTreeOpt(_treeLevels)
-        Ownable()
-    {
+    constructor(uint256 _treeLevels) BatchableMerkleForest() Ownable() {
         addEn(uint256(uint160(address(this))));
     }
 
@@ -150,8 +147,10 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
         bytes32 _signal,
         uint256[8] memory _proof,
         uint256 _nullifiersHash,
-        uint256 _signalHash
+        uint256 _signalHash,
+        uint256 _treeIndex
     ) public view returns (bool) {
+        uint256 root = treeRoots[_treeIndex];
         uint256[4] memory publicSignals = [
             root,
             _nullifiersHash,
@@ -186,7 +185,8 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
     modifier isValidSignalAndProof(
         bytes32 _signal,
         uint256[8] memory _proof,
-        uint256 _nullifiersHash
+        uint256 _nullifiersHash,
+        uint256 _treeIndex
     ) {
         // Check whether each element in _proof is a valid field element. Even
         // if verifier.sol does this check too, it is good to do so here for
@@ -210,6 +210,7 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
             _nullifiersHash < SNARK_SCALAR_FIELD,
             "Semaphore: the nullifiers hash must be lt the snark scalar field"
         );
+        uint256 root = treeRoots[_treeIndex];
 
         uint256[4] memory publicSignals = [
             root,
@@ -246,8 +247,12 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
     function broadcastSignal(
         bytes32 _signal,
         uint256[8] memory _proof,
-        uint256 _nullifiersHash
-    ) internal isValidSignalAndProof(_signal, _proof, _nullifiersHash) {
+        uint256 _nullifiersHash,
+        uint256 _treeIndex
+    )
+        internal
+        isValidSignalAndProof(_signal, _proof, _nullifiersHash, _treeIndex)
+    {
         // Client contracts should be responsible for storing the signal and/or
         // emitting it as an event
 

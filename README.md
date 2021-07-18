@@ -4,7 +4,7 @@ Smart Contract for Genesis Block
 
 ## Compile
 
-Follow https://semaphore.appliedzkp.org/quickstart.html to generate circuits & verifier.sol. Put circuit.json & proving_key.bin & verification_key.json to circuits/ folder, and verifier.sol under contracts/semaphore
+Follow https://semaphore.appliedzkp.org/quickstart.html to generate circuits & verifier.sol. Put circuit.json & proving_key.bin & verification_key.json to circuits/build/circom/ folder, and verifier.sol under contracts/semaphore
 
 ## Tests
 

@@ -115,6 +115,8 @@ build/
 
 .DS_Store
 
-circuits/build/*
-contracts/semaphore/verifier.sol
+circuits/zk-mt/build/
+!*.zok
+
+verifier.sol
 scripts/*.json

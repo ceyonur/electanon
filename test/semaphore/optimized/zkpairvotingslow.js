@@ -22,10 +22,13 @@ const {
 const path = require("path");
 const fs = require("fs");
 const { genCircuit } = require("libsemaphore");
-const circuitPath = path.join(__dirname, "../../../circuits/circuit.json");
+const circuitPath = path.join(
+  __dirname,
+  "../../../circuits/build/circom/circuit.json"
+);
 const provingKeyPath = path.join(
   __dirname,
-  "../../../circuits/proving_key.bin"
+  "../../../circuits/build/circom/proving_key.bin"
 );
 
 const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());

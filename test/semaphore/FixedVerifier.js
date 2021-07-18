@@ -80,14 +80,17 @@ contract("Semaphore", () => {
 
   describe("signal broadcasts", () => {
     // Load circuit, proving key, and verifying key
-    const circuitPath = path.join(__dirname, "../../circuits/circuit.json");
+    const circuitPath = path.join(
+      __dirname,
+      "../../circuits/build/circom/circuit.json"
+    );
     const provingKeyPath = path.join(
       __dirname,
-      "../../circuits/proving_key.bin"
+      "../../circuits/build/circom/proving_key.bin"
     );
     const verifyingKeyPath = path.join(
       __dirname,
-      "../../circuits/verification_key.json"
+      "../../circuits/build/circom/verification_key.json"
     );
 
     const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());
