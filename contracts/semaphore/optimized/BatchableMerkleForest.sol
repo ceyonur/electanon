@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {MTVerifier} from "./mtverifier.sol";
+import {MTVerifier} from "./verifier.sol";
 
 contract BatchableMerkleForest is MTVerifier {
     uint256 private constant MAX_SNARK_SCALAR_FIELD =
