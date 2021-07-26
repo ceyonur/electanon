@@ -1,4 +1,4 @@
-const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVoting");
+const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVotingMF");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -39,23 +39,31 @@ const path = require("path");
 const fs = require("fs");
 const circuitPath = path.join(
   __dirname,
-  "../../../circuits/semaphore/build/circuit.json"
+  "../../circuits/semaphore/build/circuit.json"
 );
 const provingKeyPath = path.join(
   __dirname,
-  "../../../circuits/semaphore/build/proving_key.bin"
+  "../../circuits/semaphore/build/proving_key.bin"
 );
+
+const { initialize } = require("zokrates-js/node");
+
+const verificationKeyFile = path.join(
+  __dirname,
+  "../../circuits/zk-mt/build/verification.key"
+);
+
+const proofFile = path.join(__dirname, "../../circuits/zk-mt/build/proof.json");
 
 const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());
 const provingKey = fs.readFileSync(provingKeyPath);
 const circuit = genCircuit(cirDef);
 
-contract("ZKPrivatePairVoting", (accounts) => {
+contract("ZKPrivatePairVotingMF", (accounts) => {
   beforeEach(async () => {
     this.initialManagers = accounts.slice(1, 4);
     this.owner = accounts[0];
     this.contract = await ZKPrivatePairVoting.new(
-      TREE_LEVEL,
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,

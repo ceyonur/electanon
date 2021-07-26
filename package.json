@@ -7,7 +7,7 @@
   },
   "scripts": {
     "test": "truffle test",
-    "compileAll": "npx hardhat compile && node scripts/buildMiMC.js && cp ./scripts/MiMC.json ./artifacts/contracts/semaphore/MiMC.sol/"
+    "compileAll": "npx hardhat compile && node scripts/buildMiMC.js && cp ./scripts/MiMC.json ./artifacts/contracts/libs/MiMC.sol/"
   },
   "repository": {
     "type": "git",

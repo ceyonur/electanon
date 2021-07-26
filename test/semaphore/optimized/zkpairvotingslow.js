@@ -24,18 +24,18 @@ const fs = require("fs");
 const { genCircuit } = require("libsemaphore");
 const circuitPath = path.join(
   __dirname,
-  "../../../circuits/build/circom/circuit.json"
+  "../../../circuits/semaphore/build/circuit.json"
 );
 const provingKeyPath = path.join(
   __dirname,
-  "../../../circuits/build/circom/proving_key.bin"
+  "../../../circuits/semaphore/build/proving_key.bin"
 );
 
 const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());
 const provingKey = fs.readFileSync(provingKeyPath);
 const circuit = genCircuit(cirDef);
 
-contract("ZKPairVoting election result", (accounts) => {
+contract("ZKPairVoting election result slow", (accounts) => {
   before(async () => {
     this.owner = accounts[0];
     this.contract = await ZKPairVoting.new(

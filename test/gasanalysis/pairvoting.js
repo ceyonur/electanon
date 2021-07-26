@@ -13,11 +13,13 @@ const VOTING_LIFETIME = moment.duration(30, "days").asSeconds();
 const proposalCount = Number(process.env.PCOUNT) || 20;
 const managerCount = Number(process.env.MCOUNT) || 50;
 
-console.log(
-  "ProposalCount: " + proposalCount + ", ManagerCount: " + managerCount
-);
-
 contract("PairVoting", (accounts) => {
+  before(() => {
+    console.log(
+      "ProposalCount: " + proposalCount + ", ManagerCount: " + managerCount
+    );
+  });
+
   beforeEach(async () => {
     this.contract = await PairVoting.new(
       accounts.slice(0, managerCount),

@@ -1,11 +1,11 @@
 #!/bin/zsh
 size=$1
+
 if [ -f ./build ]; then
     rm -f ./build/*
 else
   mkdir -p ./build
 fi
-
 echo "Compile"
 time (zokrates compile -i main.zok -o build/out -s build/abi.json)
 

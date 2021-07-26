@@ -21,9 +21,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../verifier.sol";
+import {Verifier} from "../../../circuits/semaphore/build/verifier.sol";
 import {IncrementalMerkleTreeOpt} from "./IncrementalMerkleTreeOpt.sol";
-import "../Ownable.sol";
+import "../../libs/Ownable.sol";
 
 contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
     // The external nullifier helps to prevent double-signalling by the same

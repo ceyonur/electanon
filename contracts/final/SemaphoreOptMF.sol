@@ -21,11 +21,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Verifier} from "../verifier.sol";
-import "../Ownable.sol";
+import {Verifier} from "../../circuits/semaphore/build/verifier.sol";
+import "../libs/Ownable.sol";
 import "./BatchableMerkleForest.sol";
 
-contract SemaphoreOptMT is Verifier, BatchableMerkleForest, Ownable {
+contract SemaphoreOptMF is Verifier, BatchableMerkleForest, Ownable {
     // The external nullifier helps to prevent double-signalling by the same
     // user. An external nullifier can be active or deactivated.
 
@@ -38,10 +38,8 @@ contract SemaphoreOptMT is Verifier, BatchableMerkleForest, Ownable {
     mapping(uint256 => bool) public nullifierHashHistory;
 
     /*
-     * @param _treeLevels The depth of the identity tree.
-     * @param _firstExternalNullifier The first identity nullifier to add.
      */
-    constructor(uint256 _treeLevels) BatchableMerkleForest() Ownable() {
+    constructor() BatchableMerkleForest() Ownable() {
         addEn(uint256(uint160(address(this))));
     }
 

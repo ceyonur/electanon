@@ -150,15 +150,15 @@ contract("signal broadcasts", (accounts) => {
   // Load circuit, proving key, and verifying key
   const circuitPath = path.join(
     __dirname,
-    "../../../circuits/build/circom/circuit.json"
+    "../../../circuits/semaphore/build/circuit.json"
   );
   const provingKeyPath = path.join(
     __dirname,
-    "../../../circuits/build/circom/proving_key.bin"
+    "../../../circuits/semaphore/build/proving_key.bin"
   );
   const verifyingKeyPath = path.join(
     __dirname,
-    "../../../circuits/build/circom/verification_key.json"
+    "../../../circuits/semaphore/build/verification_key.json"
   );
 
   const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());
@@ -248,8 +248,10 @@ contract("signal broadcasts", (accounts) => {
         oversizedInput
       );
     } catch (e) {
-      expect(e.message).to.endsWith(
-        "Semaphore: the nullifiers hash must be lt the snark scalar field"
+      expect(
+        e.message.endsWith(
+          "Semaphore: the nullifiers hash must be lt the snark scalar field"
+        )
       );
     }
   });
@@ -271,8 +273,8 @@ contract("signal broadcasts", (accounts) => {
         params.nullifiersHash
       );
     } catch (e) {
-      expect(e.message).to.endsWith(
-        "Semaphore: invalid field element(s) in proof"
+      expect(
+        e.message.endsWith("Semaphore: invalid field element(s) in proof")
       );
     }
   });
@@ -321,7 +323,7 @@ contract("signal broadcasts", (accounts) => {
         params.nullifiersHash
       );
     } catch (e) {
-      expect(e.message).to.endsWith("Semaphore: nullifier already seen");
+      expect(e.message.endsWith("Semaphore: nullifier already seen"));
     }
   });
 

@@ -34,11 +34,11 @@ const path = require("path");
 const fs = require("fs");
 const circuitPath = path.join(
   __dirname,
-  "../../../circuits/build/circom/circuit.json"
+  "../../../circuits/semaphore/build/circuit.json"
 );
 const provingKeyPath = path.join(
   __dirname,
-  "../../../circuits/build/circom/proving_key.bin"
+  "../../../circuits/semaphore/build/proving_key.bin"
 );
 
 const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());

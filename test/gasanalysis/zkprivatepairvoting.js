@@ -26,23 +26,26 @@ const path = require("path");
 const fs = require("fs");
 const circuitPath = path.join(
   __dirname,
-  "../../circuits/build/circom/circuit.json"
+  "../../circuits/semaphore/build/circuit.json"
 );
 const provingKeyPath = path.join(
   __dirname,
-  "../../circuits/build/circom/proving_key.bin"
+  "../../circuits/semaphore/build/proving_key.bin"
 );
 
 const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());
 const provingKey = fs.readFileSync(provingKeyPath);
 const circuit = genCircuit(cirDef);
 
-const proposalCount = Number(process.env.PCOUNT) || 20;
-const voterCount = Number(process.env.VCOUNT) || 50;
+const proposalCount = Number(process.env.PCOUNT) || 10;
+const voterCount = Number(process.env.VCOUNT) || 10;
 
-console.log("ProposalCount: " + proposalCount + ", VoterCount: " + voterCount);
-
-contract("PairVoting", (accounts) => {
+contract("ZK Private PairVoting", (accounts) => {
+  before(() => {
+    console.log(
+      "ProposalCount: " + proposalCount + ", VoterCount: " + voterCount
+    );
+  });
   beforeEach(async () => {
     this.contract = await ZKPrivatePairVoting.new(
       TREE_LEVEL,

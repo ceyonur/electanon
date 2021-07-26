@@ -5,7 +5,6 @@ if [ -f ./build ]; then
 else
   mkdir -p ./build
 fi
-
 echo "Compile"
 time (zokrates compile -i main.zok -o build/out -s build/abi.json)
 

@@ -21,9 +21,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./verifier.sol";
+import {Verifier} from "../../circuits/semaphore/build/verifier.sol";
 import {IncrementalMerkleTree} from "./IncrementalMerkleTree.sol";
-import "./Ownable.sol";
+import "../libs/Ownable.sol";
 
 contract Semaphore is Verifier, IncrementalMerkleTree, Ownable {
     // The external nullifier helps to prevent double-signalling by the same
@@ -226,11 +226,18 @@ contract Semaphore is Verifier, IncrementalMerkleTree, Ownable {
         uint256 _signalHash,
         uint232 _externalNullifier
     ) public view returns (bool) {
-        uint256[4] memory publicSignals =
-            [_root, _nullifiersHash, _signalHash, _externalNullifier];
+        uint256[4] memory publicSignals = [
+            _root,
+            _nullifiersHash,
+            _signalHash,
+            _externalNullifier
+        ];
 
-        (uint256[2] memory a, uint256[2][2] memory b, uint256[2] memory c) =
-            unpackProof(_proof);
+        (
+            uint256[2] memory a,
+            uint256[2][2] memory b,
+            uint256[2] memory c
+        ) = unpackProof(_proof);
 
         return
             nullifierHashHistory[_nullifiersHash] == false &&
@@ -291,11 +298,18 @@ contract Semaphore is Verifier, IncrementalMerkleTree, Ownable {
             "Semaphore: the nullifiers hash must be lt the snark scalar field"
         );
 
-        uint256[4] memory publicSignals =
-            [_root, _nullifiersHash, signalHash, _externalNullifier];
+        uint256[4] memory publicSignals = [
+            _root,
+            _nullifiersHash,
+            signalHash,
+            _externalNullifier
+        ];
 
-        (uint256[2] memory a, uint256[2][2] memory b, uint256[2] memory c) =
-            unpackProof(_proof);
+        (
+            uint256[2] memory a,
+            uint256[2][2] memory b,
+            uint256[2] memory c
+        ) = unpackProof(_proof);
 
         require(
             verifyProof(a, b, c, publicSignals),
@@ -360,7 +374,7 @@ contract Semaphore is Verifier, IncrementalMerkleTree, Ownable {
 
             // Connect the previously added external nullifier node to this one
             externalNullifierLinkedList[lastExternalNullifier]
-                .next = _externalNullifier;
+            .next = _externalNullifier;
         }
 
         // Add a new external nullifier
