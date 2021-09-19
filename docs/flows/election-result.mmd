@@ -1,0 +1,12 @@
+sequenceDiagram
+rect rgb(255, 0, 0)
+note left of Client: In Completed State (or BlockNumber > RevealLifetime)
+end
+participant Client
+note right of Client: Anyone in the Blockchain network <br> can be a client
+participant SC as SmartContract
+
+Client->>SC: electionResult()
+SC ->>Client: calculateResult(): Winner
+
+

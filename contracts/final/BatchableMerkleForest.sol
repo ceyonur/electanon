@@ -9,7 +9,7 @@ contract BatchableMerkleForest is MFVerifier {
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     // The batch size
-    uint256 private constant BATCH_DEPTH = 6;
+    uint256 private constant BATCH_DEPTH = 7;
     uint256 internal constant TREE_SIZES = 2**BATCH_DEPTH;
 
     uint256 private zeroValue;

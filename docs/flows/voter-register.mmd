@@ -1,0 +1,20 @@
+sequenceDiagram
+participant EC as ElectionCommitee
+participant SC as Smart Contract
+participant BC as Blockchain
+rect rgb(255, 0, 0)
+note left of EC: In Register State
+end
+note right of EC: TreeSize = TreeLevel ^ 2
+loop For VoterCount/TreeSize
+    note over EC, EC: IdentityCommitments is size of TreeSize
+    EC->> EC: GenerateZKTreeRoot(IdentityCommitments, ForestZKKeys, ForestZKCompiled): Proof, Root
+    EC->> SC: addIdCommitments(IdentityCommitments, Proof, Root)
+    SC->>SC: verify(IdentityCommitments, Proof, Root)
+    alt verified
+        SC->>SC: Store(Root)
+        SC->>BC: TreeInsertedEvent(IdentityCommitments, TreeIndex, Root)
+    else
+        SC->>EC: fail
+    end
+end

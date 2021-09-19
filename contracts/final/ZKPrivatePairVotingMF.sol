@@ -44,6 +44,9 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     uint256 public commitLifetime;
     uint256 public revealLifetime;
 
+    string public question;
+    string public voterZKURL;
+
     mapping(address => bool) private proposers;
     uint256 public proposerCount;
     mapping(uint256 => uint256) private voteCounts;
@@ -52,12 +55,12 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     mapping(address => bytes32) private secrets;
     uint256[] private ranks;
 
-    modifier deadlineNotPassed {
-        require(block.timestamp >= deadline, "State deadline is passed!");
+    modifier deadlineNotPassed() {
+        require(block.number >= deadline, "State deadline is passed!");
         _;
     }
 
-    modifier eligibleProposer {
+    modifier eligibleProposer() {
         require(proposers[msg.sender], "You're not eligible to propose!");
         _;
     }
@@ -85,7 +88,9 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         uint256 _maxProposalCount,
         uint256 _proposalLifetime,
         uint256 _commitLifetime,
-        uint256 _revealLifetime
+        uint256 _revealLifetime,
+        string memory _question,
+        string memory _voterZKURL
     ) SemaphoreOptMF() {
         require(
             maxProposalCount <= MAX_PROPOSAL_CAP,
@@ -95,6 +100,8 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         proposalLifetime = _proposalLifetime;
         commitLifetime = _commitLifetime;
         revealLifetime = _revealLifetime;
+        question = _question;
+        voterZKURL = _voterZKURL;
         toState(States.Register);
     }
 
@@ -109,28 +116,28 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     function toProposalState() external onlyOwner {
         require(state == States.Register, "Cannot change state to Proposal!");
         toState(States.Proposal);
-        uint256 result = block.timestamp + proposalLifetime;
+        uint256 result = block.number + proposalLifetime;
         deadline = result;
         emit StateChanged(States.Register, States.Proposal, result);
     }
 
     function toCommitState() internal {
         toState(States.Commit);
-        uint256 result = block.timestamp + commitLifetime;
+        uint256 result = block.number + commitLifetime;
         deadline = result;
         emit StateChanged(States.Proposal, States.Commit, result);
     }
 
     function toRevealState() internal {
         toState(States.Reveal);
-        uint256 result = block.timestamp + revealLifetime;
+        uint256 result = block.number + revealLifetime;
         deadline = result;
         emit StateChanged(States.Commit, States.Reveal, result);
     }
 
     function toCompletedState() internal {
         toState(States.Completed);
-        emit StateChanged(States.Reveal, States.Completed, block.timestamp);
+        emit StateChanged(States.Reveal, States.Completed, block.number);
     }
 
     function addProposers(address[] calldata proposerList)
@@ -214,9 +221,9 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
             ranks.push(_voteRank);
         }
         voteCounts[_voteRank]++;
-        committedCount--;
+        votedCount++;
         delete secrets[msg.sender];
-        if (committedCount == 0) {
+        if (votedCount == committedCount) {
             toCompletedState();
         }
     }
@@ -235,12 +242,7 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     //https://math.libretexts.org/Bookshelves/Applied_Mathematics/Book%3A_College_Mathematics_for_Everyday_Life_(Inigo_et_al)
     //https://en.wikipedia.org/wiki/Ranked_pairs
     /* solhint-enable */
-    function electionResult()
-        external
-        view
-        atCompletedState()
-        returns (uint256)
-    {
+    function electionResult() external view atCompletedState returns (uint256) {
         uint256 matrixSize = proposalIdCt;
         uint256[] memory rankIds = ranks;
         return PairBaseLib.calculateResult(matrixSize, rankIds, voteCounts);
@@ -281,6 +283,10 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         return r;
     }
 
+    function getVoterZKURL() external view returns (string memory) {
+        return voterZKURL;
+    }
+
     /// PRIVATE CODE
 
     // Perform timed transitions. Be sure to mention
@@ -314,15 +320,15 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     }
 
     function changableToCommit() private view returns (bool) {
-        return state == States.Proposal && block.timestamp >= deadline;
+        return state == States.Proposal && block.number >= deadline;
     }
 
     function changableToReveal() private view returns (bool) {
-        return state == States.Commit && block.timestamp >= deadline;
+        return state == States.Commit && block.number >= deadline;
     }
 
     function changableToCompleted() private view returns (bool) {
-        return state == States.Reveal && block.timestamp >= deadline;
+        return state == States.Reveal && block.number >= deadline;
     }
 
     function currentProposals() public view returns (uint256[] memory) {
@@ -334,7 +340,8 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     }
 
     function _setupProposer(address account) private {
-        require(proposers[account] == false, "Proposer is added already.");
+        bool proposerAdded = proposers[account];
+        require(proposerAdded == false, "Proposer is added already.");
         proposers[account] = true;
     }
 }

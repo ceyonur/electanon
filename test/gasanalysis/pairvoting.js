@@ -11,18 +11,18 @@ const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const VOTING_LIFETIME = moment.duration(30, "days").asSeconds();
 
 const proposalCount = Number(process.env.PCOUNT) || 20;
-const managerCount = Number(process.env.MCOUNT) || 50;
+const voterCount = Number(process.env.VCOUNT) || 50;
 
 contract("PairVoting", (accounts) => {
   before(() => {
     console.log(
-      "ProposalCount: " + proposalCount + ", ManagerCount: " + managerCount
+      "ProposalCount: " + proposalCount + ", VoterCount: " + voterCount
     );
   });
 
   beforeEach(async () => {
     this.contract = await PairVoting.new(
-      accounts.slice(0, managerCount),
+      accounts.slice(0, voterCount),
       proposalCount,
       PROPOSAL_LIFETIME,
       VOTING_LIFETIME
@@ -36,8 +36,8 @@ contract("PairVoting", (accounts) => {
       });
     }
 
-    for (let i = 0; i < managerCount; i++) {
-      await this.contract.vote(managerCount, {
+    for (let i = 0; i < voterCount; i++) {
+      await this.contract.vote(voterCount, {
         from: accounts[i],
       });
     }
@@ -49,7 +49,7 @@ contract("PairVoting", (accounts) => {
 
 contract("Ballot", (accounts) => {
   beforeEach(async () => {
-    this.contract = await Ballot.new(accounts.slice(0, managerCount));
+    this.contract = await Ballot.new(accounts.slice(0, voterCount));
   });
 
   it("should not exceed gas", async () => {
@@ -59,7 +59,7 @@ contract("Ballot", (accounts) => {
       });
     }
 
-    for (let i = 0; i < managerCount; i++) {
+    for (let i = 0; i < voterCount; i++) {
       await this.contract.vote(getRandom(proposalCount), {
         from: accounts[i],
       });

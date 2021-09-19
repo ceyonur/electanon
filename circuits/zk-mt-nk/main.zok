@@ -1,17 +1,16 @@
 import "hashes/mimcSponge/mimcSponge" as mimc
 
-const u32 SIZE = 64
+const u32 LEVEL = 4
+const u32 SIZE = 1 << LEVEL
 const u32 QSIZE = SIZE + 1
 const u32 USIZE = SIZE * 4
 
 def enQueue<N>(field value, field[N]queue, u32 tail, u32 head) -> (field[N], u32, u32):
-    assert((tail + 1) % N != head )
     queue[tail] = value
     tail = (tail + 1) % N
     return queue, tail, head
 
 def deQueue<N>(field[N]queue, u32 tail, u32 head) -> (field, field[N], u32, u32):
-    assert(head != tail)
     field result = queue[head]
     queue[head] = 0
     head = (head + 1) % N

@@ -4,26 +4,24 @@ import "hashes/keccak/256bit" as keccak
 import "hashes/mimcSponge/mimcSponge" as mimc
 import "utils/pack/bool/pack" as pack
 
-const u32 SIZE = 64
+const u32 LEVEL = 7
+const u32 SIZE = 1 << LEVEL
 const u32 QSIZE = SIZE + 1
 const u32 USIZE = SIZE * 4
 
 def enQueue<N>(field value, field[N]queue, u32 tail, u32 head) -> (field[N], u32, u32):
-    assert((tail + 1) % N != head )
     queue[tail] = value
     tail = (tail + 1) % N
     return queue, tail, head
 
 
 def deQueue<N>(field[N]queue, u32 tail, u32 head) -> (field, field[N], u32, u32):
-    assert(head != tail)
     field result = queue[head]
     queue[head] = 0
     head = (head + 1) % N
     return result, queue, tail, head
 
 def bool_to_u64_arr<N, P>(bool[N] bits) -> u64[P]:
-	assert(N == 64 * P)
 	u64[P] res = [0; P]
 	for u32 i in 0..P do
 		res[i] = u64_from_bits(bits[64 * i..64 * (i + 1)])

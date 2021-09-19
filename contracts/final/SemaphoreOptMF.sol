@@ -23,9 +23,9 @@ pragma solidity ^0.8.0;
 
 import {Verifier} from "../../circuits/semaphore/build/verifier.sol";
 import "../libs/Ownable.sol";
-import "./BatchableMerkleForest.sol";
+import "./BatchableMerkleForestNK.sol";
 
-contract SemaphoreOptMF is Verifier, BatchableMerkleForest, Ownable {
+contract SemaphoreOptMF is Verifier, BatchableMerkleForestNK, Ownable {
     // The external nullifier helps to prevent double-signalling by the same
     // user. An external nullifier can be active or deactivated.
 
@@ -39,7 +39,7 @@ contract SemaphoreOptMF is Verifier, BatchableMerkleForest, Ownable {
 
     /*
      */
-    constructor() BatchableMerkleForest() Ownable() {
+    constructor() BatchableMerkleForestNK() Ownable() {
         addEn(uint256(uint160(address(this))));
     }
 

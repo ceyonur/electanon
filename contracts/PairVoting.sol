@@ -10,7 +10,11 @@ contract PairVoting {
     );
     event StateChanged(States indexed _from, States indexed _to);
 
-    enum States {Proposal, Voting, Completed}
+    enum States {
+        Proposal,
+        Voting,
+        Completed
+    }
     States state;
 
     uint256 constant MAX_PROPOSAL_CAP = 30;
@@ -27,7 +31,7 @@ contract PairVoting {
 
     uint256[] ranks;
 
-    modifier onlyManager {
+    modifier onlyManager() {
         require(
             managers[msg.sender] > 0,
             "Only managers can call this function"
@@ -35,7 +39,7 @@ contract PairVoting {
         _;
     }
 
-    modifier proposalDeadlineNotPassed {
+    modifier proposalDeadlineNotPassed() {
         require(
             block.timestamp >= proposalDeadline,
             "Proposal deadline is passed!"
@@ -43,12 +47,12 @@ contract PairVoting {
         _;
     }
 
-    modifier notAlreadyProposed {
+    modifier notAlreadyProposed() {
         require(managers[msg.sender] > 2, "You already proposed!");
         _;
     }
 
-    modifier notAlreadyVoted {
+    modifier notAlreadyVoted() {
         require(managers[msg.sender] > 1, "You already voted!");
         _;
     }
@@ -153,12 +157,7 @@ contract PairVoting {
     //https://math.libretexts.org/Bookshelves/Applied_Mathematics/Book%3A_College_Mathematics_for_Everyday_Life_(Inigo_et_al)
     //https://en.wikipedia.org/wiki/Ranked_pairs
     /* solhint-enable */
-    function electionResult()
-        external
-        view
-        atCompletedState()
-        returns (uint256)
-    {
+    function electionResult() external view atCompletedState returns (uint256) {
         uint256 matrixSize = proposalIdCt;
         uint256[] memory rankIds = ranks;
         return PairBaseLib.calculateResult(matrixSize, rankIds, voteCounts);

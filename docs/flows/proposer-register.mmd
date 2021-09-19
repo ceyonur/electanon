@@ -1,0 +1,14 @@
+sequenceDiagram
+participant EC as ElectionCommitee
+participant SC as Smart Contract
+participant BC as Blockchain
+rect rgb(255, 0, 0)
+note left of EC: In Register State
+end
+  EC->>SC: addProposers(ProposerAddressList)
+  alt Proposers Not Added Before
+      SC->>SC: Store(ProposerAddressList)
+      SC->>BC: ProposersAddedEvent(ProposerAddressList)
+  else
+      SC->>EC: fail
+  end

@@ -1,0 +1,13 @@
+stateDiagram-v2
+    Compile/Deploy --> Register: Smart Contract Deployed
+    Register --> Proposal: toProposalState() by Election Commitee
+    Proposal --> Commit: Proposed Count == MaxProposalCount (triggered by propose())
+    Proposal --> Commit: Proposed Count == ProposerCount (triggered by propose())
+    Proposal --> Commit: BlockNumber > ProposalLifetime (triggered by commitVote())
+    Commit --> Reveal: CommittedCount == VoterCount(ForestSize) (triggered by commitVote())
+    Commit --> Reveal: BlockNumber > RevealLifetime (triggered by revealVote())
+    Reveal --> Completed: RevealedCount == CommittedCount (triggered by revealVote())
+    Note right of Completed: Not an actual timed-state like others, since no transaction can be issued if BlockNumber > RevealLifetime
+    Reveal --> Completed: BlockNumber > RevealLifetime
+
+

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {InsertionSortLib} from "./InsertionSortLib.sol";
+import {InsertionSortLib as SortLib} from "./InsertionSortLib.sol";
 
 library PairBaseLib {
     //https://rosettacode.org/wiki/Permutations/Rank_of_a_permutation
@@ -11,8 +11,11 @@ library PairBaseLib {
         uint256[] memory rankIds,
         mapping(uint256 => uint256) storage voteCounts
     ) internal view returns (uint256) {
-        uint256[4][] memory prefs =
-            _getPrefPairs(matrixSize, rankIds, voteCounts);
+        uint256[4][] memory prefs = _getPrefPairs(
+            matrixSize,
+            rankIds,
+            voteCounts
+        );
         bool[][] memory locked = _getLockedPairs(matrixSize, prefs);
         for (uint256 i = 0; i < matrixSize; i++) {
             bool source = true;
@@ -142,10 +145,14 @@ library PairBaseLib {
                 pairWinners[i][0] = prefs[i][0];
                 // loser
                 pairWinners[i][1] = prefs[i][1];
+                // point
                 pairWinners[i][2] = prefs[i][2];
             } else {
+                // winner
                 pairWinners[i][0] = prefs[i][1];
+                // loser
                 pairWinners[i][1] = prefs[i][0];
+                // point
                 pairWinners[i][2] = prefs[i][3];
             }
         }
@@ -159,7 +166,8 @@ library PairBaseLib {
         returns (bool[][] memory)
     {
         uint256[3][] memory sortedPairs = _getWinningPairs(matrixSize, prefs);
-        InsertionSortLib.sort(sortedPairs);
+
+        SortLib.sort(sortedPairs);
         bool[][] memory locked = initMultiArray(matrixSize + 1);
         for (uint256 i = 0; i < sortedPairs.length; i++) {
             if (

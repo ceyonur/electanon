@@ -27,7 +27,13 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         uint256 indexed _root
     );
 
-    enum States {Register, Proposal, Commit, Reveal, Completed}
+    enum States {
+        Register,
+        Proposal,
+        Commit,
+        Reveal,
+        Completed
+    }
     States state;
 
     uint256 constant MAX_PROPOSAL_CAP = 30;
@@ -46,12 +52,12 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
     mapping(address => bytes32) secrets;
     uint256[] ranks;
 
-    modifier deadlineNotPassed {
+    modifier deadlineNotPassed() {
         require(block.timestamp >= deadline, "State deadline is passed!");
         _;
     }
 
-    modifier eligibleProposer {
+    modifier eligibleProposer() {
         require(proposers[msg.sender], "You're not eligible to propose!");
         _;
     }
@@ -178,7 +184,7 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         uint256[8] calldata _proof,
         uint256 _nullifiersHash
     ) external timedTransitions atState(States.Commit) {
-        require(_secretHash != 0);
+        require(_secretHash != 0, "secret hash cannot be 0");
         broadcastSignal(_secretHash, _proof, _nullifiersHash);
         secrets[msg.sender] = _secretHash;
         committedCount++;
@@ -224,12 +230,7 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
     //https://math.libretexts.org/Bookshelves/Applied_Mathematics/Book%3A_College_Mathematics_for_Everyday_Life_(Inigo_et_al)
     //https://en.wikipedia.org/wiki/Ranked_pairs
     /* solhint-enable */
-    function electionResult()
-        external
-        view
-        atCompletedState()
-        returns (uint256)
-    {
+    function electionResult() external view atCompletedState returns (uint256) {
         uint256 matrixSize = proposalIdCt;
         uint256[] memory rankIds = ranks;
         return PairBaseLib.calculateResult(matrixSize, rankIds, voteCounts);

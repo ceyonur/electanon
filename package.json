@@ -7,7 +7,8 @@
   },
   "scripts": {
     "test": "truffle test",
-    "compileAll": "npx hardhat compile && node scripts/buildMiMC.js && cp ./scripts/MiMC.json ./artifacts/contracts/libs/MiMC.sol/"
+    "compileAll": "npx hardhat compile && node scripts/buildMiMC.js && cp ./scripts/MiMC.json ./artifacts/contracts/libs/MiMC.sol/",
+    "exportFlows": "for file in ./docs/flows/*.mmd; do npx -p @mermaid-js/mermaid-cli mmdc -i $file -o ./docs/img/${file##*/}.png; done"
   },
   "repository": {
     "type": "git",
@@ -21,29 +22,28 @@
   "homepage": "https://github.com/ceyonur/gentract#readme",
   "dependencies": {
     "@codechecks/client": "^0.1.11",
-    "@openzeppelin/contracts": "^4.2.0",
+    "@nomiclabs/hardhat-truffle5": "^2.0.0",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "@openzeppelin/contracts": "^4.3.2",
     "@poanet/solidity-flattener": "^3.0.6",
+    "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
     "chai-string": "^1.5.0",
     "circomlib": "git+https://github.com/kobigurk/circomlib.git#347822604996bf25f659f96ee0f02810a1f71bb0",
-    "eslint-plugin-truffle": "^0.3.1",
-    "ethers": "4.0.38",
-    "moment": "^2.29.1",
-    "prettier": "^2.3.2",
-    "zokrates-js": "^1.0.34"
-  },
-  "devDependencies": {
-    "@nomiclabs/hardhat-truffle5": "^2.0.0",
-    "@nomiclabs/hardhat-web3": "^2.0.0",
-    "chai": "^4.3.4",
     "eslint": "^7.31.0",
-    "hardhat": "^2.4.3",
+    "eslint-plugin-truffle": "^0.3.1",
+    "ethers": "^5.4.7",
+    "hardhat": "^2.6.4",
     "hardhat-gas-reporter": "^1.0.4",
+    "libsemaphore": "file:../libsemaphore",
     "mocha": "^8.4.0",
     "module-alias": "^2.2.2",
+    "moment": "^2.29.1",
+    "prettier": "^2.3.2",
     "semaphore-merkle-tree": "^1.0.12",
     "truffle-artifactor": "^4.0.30",
     "truffle-assertions": "^0.9.2",
-    "web3": "^1.4.0"
+    "web3": "^1.5.2",
+    "zokrates-js": "^1.0.35"
   }
 }
