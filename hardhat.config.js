@@ -32,7 +32,7 @@ module.exports = {
     rst: true,
   },
   networks: {
-    localhost: {
+    ganache: {
       url: "http://127.0.0.1:7545",
       accounts: {
         mnemonic:
@@ -44,7 +44,7 @@ module.exports = {
       // See its defaults
       allowUnlimitedContractSize: true,
       accounts: {
-        count: 100,
+        count: 1000,
       },
     },
   },

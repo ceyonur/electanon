@@ -7,6 +7,7 @@ const {
   genIdentityCommitment,
   genIdentity,
   genPrivateVoteWitness,
+  genStaticIdentity,
 } = require("libsemaphore");
 const readline = require("readline");
 
@@ -159,7 +160,34 @@ async function setupVoters(number, sender, contract) {
   await contract.addIdCommitments(idCommits, root, {
     from: sender,
   });
-  return ids;
+  return { ids, idCommits };
+}
+
+async function setupVotersStatic(number, sender, contract, batchSize = 100) {
+  let idCommits = [];
+  let level = await contract.getTreeLevel();
+  if (number < batchSize) {
+    batchSize = number;
+  }
+  for (let n = 0; n < number; n++) {
+    let identity = genStaticIdentity(n);
+    let identityCommitment = genIdentityCommitment(identity);
+    idCommits.push(identityCommitment.toString());
+  }
+  let tree = await genTree(level, idCommits);
+  // this is for reducing construction of huge trees
+  let root = await tree.root();
+  let round = number / batchSize;
+  for (let r = 0; r < round; r++) {
+    await contract.addIdCommitments(
+      idCommits.slice(r * batchSize, r * batchSize + batchSize),
+      root,
+      {
+        from: sender,
+      }
+    );
+  }
+  return { tree, idCommits };
 }
 
 async function setupZKParams(
@@ -264,6 +292,7 @@ module.exports = {
   voteWithArray,
   setupZKParams,
   setupVoters,
+  setupVotersStatic,
   setupProposers,
   setupProposals,
   setupZKParamsPrivate,

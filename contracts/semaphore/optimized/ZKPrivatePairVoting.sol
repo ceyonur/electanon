@@ -21,6 +21,12 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         uint256 indexed _root
     );
 
+    event VoterIdCommitAdded(
+        address indexed _sender,
+        uint256 voterCommits,
+        uint256 indexed _root
+    );
+
     event VoterTreeReplaced(
         address indexed _sender,
         uint256[] voterCommits,
@@ -89,7 +95,7 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         uint256 _revealLifetime
     ) SemaphoreOpt(_treeLevels) {
         require(
-            maxProposalCount <= MAX_PROPOSAL_CAP,
+            _maxProposalCount <= MAX_PROPOSAL_CAP,
             "maxProposalCount is too high!"
         );
         maxProposalCount = _maxProposalCount;
@@ -154,7 +160,16 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         emit VoterIdCommitsAdded(msg.sender, _identityCommitments, _root);
     }
 
-    function replaceIdCommitmentsTree(
+    function addIdCommitment(uint256 _identityCommitment, uint256 _root)
+        external
+        atState(States.Register)
+        onlyOwner
+    {
+        insertLeaf(_identityCommitment, _root);
+        emit VoterIdCommitAdded(msg.sender, _identityCommitment, _root);
+    }
+
+    function replaceIdCommitments(
         uint256[] calldata _identityCommitments,
         uint256 _root
     ) external atState(States.Register) onlyOwner {
@@ -209,9 +224,9 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
             ranks.push(_voteRank);
         }
         voteCounts[_voteRank]++;
-        committedCount--;
+        votedCount++;
         delete secrets[msg.sender];
-        if (committedCount == 0) {
+        if (votedCount == committedCount) {
             toCompletedState();
         }
     }
@@ -324,7 +339,8 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
     }
 
     function _setupProposer(address account) private {
-        require(proposers[account] == false, "Proposer is added already.");
+        bool proposerAdded = proposers[account];
+        require(proposerAdded == false, "Proposer is added already.");
         proposers[account] = true;
     }
 }

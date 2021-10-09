@@ -165,9 +165,9 @@ library PairBaseLib {
         pure
         returns (bool[][] memory)
     {
-        uint256[3][] memory sortedPairs = _getWinningPairs(matrixSize, prefs);
+        uint256[3][] memory pairs = _getWinningPairs(matrixSize, prefs);
 
-        SortLib.sort(sortedPairs);
+        uint256[3][] memory sortedPairs = SortLib.sort(pairs);
         bool[][] memory locked = initMultiArray(matrixSize + 1);
         for (uint256 i = 0; i < sortedPairs.length; i++) {
             if (

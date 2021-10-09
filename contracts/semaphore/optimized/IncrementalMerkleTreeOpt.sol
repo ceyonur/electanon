@@ -34,8 +34,7 @@ abstract contract IncrementalMerkleTreeOpt {
     // The tree depth
     uint256 internal treeLevels;
 
-    // inserted leaves
-    uint256[] internal leaves;
+    uint256 leavesLength;
 
     // The Merkle root
     uint256 public root;
@@ -64,9 +63,9 @@ abstract contract IncrementalMerkleTreeOpt {
         returns (uint256, uint256)
     {
         uint256 depth = uint256(treeLevels);
-        uint256 leavesLength = leaves.length;
+        uint256 tmpLeavesLength = leavesLength;
         require(
-            leavesLength + _leaves.length < uint256(2)**depth,
+            tmpLeavesLength + _leaves.length < uint256(2)**depth,
             "IncrementalMerkleTree: tree is full"
         );
         for (uint256 i = 0; i < _leaves.length; i++) {
@@ -74,12 +73,12 @@ abstract contract IncrementalMerkleTreeOpt {
                 _leaves[i] < MAX_SNARK_SCALAR_FIELD,
                 "IncrementalMerkleTree: insertLeaves argument must be < MAX_SNARK_SCALAR_FIELD"
             );
-
-            leaves.push(_leaves[i]);
         }
         root = _root;
+        tmpLeavesLength += _leaves.length;
+        leavesLength = tmpLeavesLength;
 
-        return (leavesLength, leavesLength + _leaves.length);
+        return (tmpLeavesLength, tmpLeavesLength + _leaves.length);
     }
 
     function replaceTree(uint256[] memory _leaves, uint256 _root)
@@ -98,9 +97,9 @@ abstract contract IncrementalMerkleTreeOpt {
             );
         }
 
-        leaves = _leaves;
-
         root = _root;
+
+        leavesLength = _leaves.length;
 
         return _leaves.length;
     }
@@ -115,38 +114,38 @@ abstract contract IncrementalMerkleTreeOpt {
         );
 
         uint256 depth = uint256(treeLevels);
-        uint256 leavesLength = leaves.length;
+        uint256 tmpLeavesLength = leavesLength;
 
         require(
             leavesLength < uint256(2)**depth,
             "IncrementalMerkleTree: tree is full"
         );
 
-        leaves.push(_leaf);
-
         root = _root;
+        tmpLeavesLength++;
+        leavesLength = tmpLeavesLength;
 
-        return leavesLength + 1;
+        return tmpLeavesLength;
     }
 
     function getTreeLevel() public view returns (uint256) {
         return treeLevels;
     }
 
-    function getLeaves() public view returns (uint256[] memory) {
-        return leaves;
-    }
+    // function getLeaves() public view returns (uint256[] memory) {
+    //     return leaves;
+    // }
 
-    /*
-     * Returns the number of inserted identity commitments.
-     */
+    // /*
+    //  * Returns the number of inserted identity commitments.
+    //  */
     function getLeavesNum() public view returns (uint256) {
-        return leaves.length;
+        return leavesLength;
     }
 
-    function getLeaf(uint256 _index) public view returns (uint256) {
-        return leaves[_index];
-    }
+    // function getLeaf(uint256 _index) public view returns (uint256) {
+    //     return leaves[_index];
+    // }
 
     function getRoot() public view returns (uint256) {
         return root;

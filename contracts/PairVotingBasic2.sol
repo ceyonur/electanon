@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import {PairBaseLib} from "./libs/PairBaseLib.sol";
+import {SimpleResultLib2 as TallyLib} from "./libs/SimpleResultLib2.sol";
+import "./libs/Ownable.sol";
 
-contract PairVoting {
+contract PairVotingBasic2 is Ownable {
     event Proposed(
         uint256 indexed _id,
         address indexed _from,
@@ -11,6 +12,7 @@ contract PairVoting {
     event StateChanged(States indexed _from, States indexed _to);
 
     enum States {
+        Register,
         Proposal,
         Voting,
         Completed
@@ -19,6 +21,7 @@ contract PairVoting {
 
     uint256 constant MAX_PROPOSAL_CAP = 30;
     uint256 proposalIdCt = 0;
+    uint256 proposalLifetime;
     uint256 proposalDeadline;
     uint256 maxProposalCount;
     uint256 votingDeadline;
@@ -83,28 +86,38 @@ contract PairVoting {
     }
 
     constructor(
-        address[] memory managerList,
         uint256 _maxProposalCount,
-        uint256 proposalLifetime,
+        uint256 _proposalLifetime,
         uint256 _votingLifetime
-    ) {
+    ) Ownable() {
         require(
             _maxProposalCount <= MAX_PROPOSAL_CAP,
             "maxProposalCount is too high!"
         );
-        _setupRole(msg.sender);
-        for (uint256 i = 0; i < managerList.length; i++) {
-            _setupRole(managerList[i]);
-        }
-        managerCount = managerList.length;
         maxProposalCount = _maxProposalCount;
-        proposalDeadline = block.timestamp + proposalLifetime;
         votingLifetime = _votingLifetime;
-        toState(States.Proposal);
+        proposalLifetime = _proposalLifetime;
+        toState(States.Register);
     }
 
     function toState(States _state) internal {
         state = _state;
+    }
+
+    function addManager(address manager)
+        external
+        onlyOwner
+        atState(States.Register)
+    {
+        require(managers[manager] == 0, "You already registered this account");
+        managers[manager] = 3;
+        managerCount++;
+    }
+
+    function toProposalState() external onlyOwner {
+        toState(States.Proposal);
+        proposalDeadline = block.timestamp + proposalLifetime;
+        emit StateChanged(States.Register, States.Proposal);
     }
 
     //TODO: should not change if not enough proposals
@@ -142,12 +155,12 @@ contract PairVoting {
         timedTransitions
         atState(States.Voting)
     {
+        managers[msg.sender] = 1;
+        voterCount++;
         if (voteCounts[rank] == 0) {
             ranks.push(rank);
         }
         voteCounts[rank]++;
-        managers[msg.sender] = 1;
-        voterCount++;
         if (voterCount == managerCount) {
             toCompletedState();
         }
@@ -159,8 +172,7 @@ contract PairVoting {
     /* solhint-enable */
     function electionResult() external view atCompletedState returns (uint256) {
         uint256 matrixSize = proposalIdCt;
-        uint256[] memory rankIds = ranks;
-        return PairBaseLib.calculateResult(matrixSize, rankIds, voteCounts);
+        return TallyLib.calculateResult(matrixSize, ranks, voteCounts);
     }
 
     function isManager(address account) public view returns (bool) {
@@ -193,8 +205,17 @@ contract PairVoting {
             v[i] = vec[i];
             inv[vec[i] - 1] = i + 1;
         }
-        uint256 r = PairBaseLib._mr_rank1(n, v, inv);
+        uint256 r = TallyLib._mr_rank1(n, v, inv);
         return r;
+    }
+
+    function getVector(uint256 rank)
+        external
+        view
+        returns (uint256[] memory vec)
+    {
+        uint256[] memory v = TallyLib.get_permutation(rank, proposalIdCt);
+        return v;
     }
 
     function isCompletedState() private view returns (bool) {

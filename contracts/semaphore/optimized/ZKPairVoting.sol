@@ -16,7 +16,12 @@ contract ZKPairVoting is SemaphoreOpt {
         uint256 indexed _root
     );
 
-    enum States {Register, Proposal, Voting, Completed}
+    enum States {
+        Register,
+        Proposal,
+        Voting,
+        Completed
+    }
     States state;
 
     uint256 constant MAX_PROPOSAL_CAP = 30;
@@ -33,7 +38,7 @@ contract ZKPairVoting is SemaphoreOpt {
 
     uint256[] ranks;
 
-    modifier proposalDeadlineNotPassed {
+    modifier proposalDeadlineNotPassed() {
         require(
             block.timestamp >= proposalDeadline,
             "Proposal deadline is passed!"
@@ -41,7 +46,7 @@ contract ZKPairVoting is SemaphoreOpt {
         _;
     }
 
-    modifier eligibleProposer {
+    modifier eligibleProposer() {
         require(proposers[msg.sender], "You're not eligible to propose!");
         _;
     }
@@ -76,7 +81,7 @@ contract ZKPairVoting is SemaphoreOpt {
         uint256 _votingLifetime
     ) SemaphoreOpt(_treeLevels) {
         require(
-            maxProposalCount <= MAX_PROPOSAL_CAP,
+            _maxProposalCount <= MAX_PROPOSAL_CAP,
             "maxProposalCount is too high!"
         );
         maxProposalCount = _maxProposalCount;
@@ -178,12 +183,7 @@ contract ZKPairVoting is SemaphoreOpt {
     //https://math.libretexts.org/Bookshelves/Applied_Mathematics/Book%3A_College_Mathematics_for_Everyday_Life_(Inigo_et_al)
     //https://en.wikipedia.org/wiki/Ranked_pairs
     /* solhint-enable */
-    function electionResult()
-        external
-        view
-        atCompletedState()
-        returns (uint256)
-    {
+    function electionResult() external view atCompletedState returns (uint256) {
         uint256 matrixSize = proposalIdCt;
         uint256[] memory rankIds = ranks;
         uint256[4][] memory prefs = _getPrefPairs(matrixSize, rankIds);

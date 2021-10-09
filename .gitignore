@@ -121,3 +121,5 @@ circuits/zk-mt/build/
 verifier.sol
 scripts/*.json
 *.zip
+
+tree.json
