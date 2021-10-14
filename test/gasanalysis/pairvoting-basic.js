@@ -1,4 +1,4 @@
-const PairVotingBasic = artifacts.require("PairVotingBasic");
+const PairVotingBasic = artifacts.require("PairVotingBasic2");
 //const Ballot = artifacts.require("analysis/Ballot");
 
 const chai = require("chai");

@@ -26,10 +26,15 @@ contract("ZK Private PairVoting", (accounts) => {
 
   it("should reveal and vote", async () => {
     for (let i = 0; i < voterCount; i++) {
-      let password32 = passwordToSalt(PASSWORD + i);
-      await this.contract.revealVote(i, password32, {
-        from: accounts[i],
-      });
+      try {
+        let password32 = passwordToSalt(PASSWORD + i);
+        await this.contract.revealVote(i, password32, {
+          from: accounts[i],
+        });
+      } catch (error) {
+        console.log(error);
+        continue;
+      }
     }
     const result = await this.contract.electionResult.estimateGas();
     console.log("Election Result estimated Gas: " + result);
