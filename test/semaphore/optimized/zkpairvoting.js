@@ -89,7 +89,7 @@ contract("ZKPairVoting", (accounts) => {
     let level = await this.contract.getTreeLevel();
     let tree = await genTree(level, idCommits);
     let root = await tree.root();
-    await this.contract.addIdCommitments(idCommits, root, {
+    await this.contract.addVoters(idCommits, root, {
       from: this.owner,
     });
     const leaves = await this.contract.getLeaves();

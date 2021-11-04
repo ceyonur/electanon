@@ -1,0 +1,14 @@
+sequenceDiagram
+participant Voter
+participant SC as SmartContract
+rect rgb(255, 0, 0)
+note left of Voter: In Reveal State
+end
+Voter->>SC: revealVote(VoteID, VoterSecret)
+alt Hash(VoteID,VoterSecret) == Voter->VoteHash
+SC->>SC: Store(VoteID)
+else
+SC->>Voter: fail
+end
+
+

@@ -1,8 +1,8 @@
 
   Contract: ZK Private PairVoting
 ProposalCount: 10, VoterCount: 1000
-Election Result estimated Gas: 48980
-    ✓ should reveal and vote (473750ms, 100530590 gas)
+Election Result estimated Gas: 48953
+    ✓ should reveal and vote (321336ms, 100530590 gas)
 
 
 
@@ -12,14 +12,14 @@ Election Result estimated Gas: 48980
   ·-------------------------------------------|---------------------------|-------------|----------------------------·
   |            Solc version: 0.8.7            ·  Optimizer enabled: true  ·  Runs: 200  ·  Block limit: 6718946 gas  │
   ············································|···························|·············|·····························
-  |  Methods                                  ·               54 gwei/gas               ·      3001.91 eur/eth       │
+  |  Methods                                  ·              140 gwei/gas               ·      3955.46 eur/eth       │
   ·····························|··············|·············|·············|·············|·············|···············
   |  Contract                  ·  Method      ·  Min        ·  Max        ·  Avg        ·  # calls    ·  eur (avg)   │
   ·····························|··············|·············|·············|·············|·············|···············
-  |  ZKPrivatePairVotingBasic  ·  commitVote  ·          -  ·          -  ·     322417  ·          1  ·       52.26  │
+  |  ZKPrivatePairVotingBasic  ·  commitVote  ·          -  ·          -  ·     322463  ·          1  ·      178.57  │
   ·····························|··············|·············|·············|·············|·············|···············
-  |  ZKPrivatePairVotingBasic  ·  revealVote  ·     100306  ·     288394  ·     100531  ·       1000  ·       16.30  │
+  |  ZKPrivatePairVotingBasic  ·  revealVote  ·     100306  ·     288394  ·     100531  ·       1000  ·       55.67  │
   ·----------------------------|--------------|-------------|-------------|-------------|-------------|--------------·
 
-  1 passing (8m)
+  1 passing (6m)
 

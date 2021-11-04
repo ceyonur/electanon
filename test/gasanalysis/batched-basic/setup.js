@@ -1,4 +1,4 @@
-const ZKPrivatePairVotingBasic = artifacts.require("ZKPrivatePairVoting");
+const ZKPrivatePairVotingBasic = artifacts.require("ZKPrivatePairVotingBasic");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -45,9 +45,6 @@ contract("ZK Private PairVoting", (accounts) => {
     expect(idCommits).to.be.an("array").that.has.lengthOf(voterCount);
     let leavesNum = await this.contract.getLeavesNum();
     expect(leavesNum.toString()).equals(voterCount.toString());
-
-    this.numLevel = await this.contract.getTreeLevel();
-    this.extNullifier = await this.contract.getActiveExternalNullifier();
 
     await setupProposers(
       this.owner,

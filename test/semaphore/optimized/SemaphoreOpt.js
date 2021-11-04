@@ -59,7 +59,7 @@ contract("SemaphoreOpt", (accounts) => {
     let tree = await genTree(level, [identityCommitment.toString()]);
     let root = await tree.root();
 
-    const tx = await semaphoreContract.addIdCommitment(
+    const tx = await semaphoreContract.addVoter(
       identityCommitment.toString(),
       root
     );
@@ -92,10 +92,7 @@ contract("SemaphoreOpt", (accounts) => {
     let tree = await genTree(level, identityCommitments);
     let root = await tree.root();
 
-    const tx = await semaphoreContract.addIdCommitments(
-      identityCommitments,
-      root
-    );
+    const tx = await semaphoreContract.addVoters(identityCommitments, root);
     const receipt = tx.receipt;
     expect(receipt.status).to.be.true;
 
@@ -190,7 +187,7 @@ contract("signal broadcasts", (accounts) => {
     let level = await semaphoreContract.getTreeLevel();
     let tree = await genTree(level, [identityCommitment.toString()]);
     let root = await tree.root();
-    await semaphoreContract.addIdCommitment(
+    await semaphoreContract.addVoter(
       identityCommitment.toString(),
       BigInt(root)
     );

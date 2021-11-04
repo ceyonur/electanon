@@ -134,10 +134,11 @@ contract ZKPairVoting is SemaphoreOpt {
         emit ProposersAdded(msg.sender, proposerList);
     }
 
-    function addIdCommitments(
-        uint256[] memory _identityCommitments,
-        uint256 _root
-    ) external atState(States.Register) onlyOwner {
+    function addVoters(uint256[] memory _identityCommitments, uint256 _root)
+        external
+        atState(States.Register)
+        onlyOwner
+    {
         insertLeaves(_identityCommitments, _root);
         emit VoterCommitsAdded(msg.sender, _identityCommitments, _root);
     }

@@ -1,0 +1,32 @@
+sequenceDiagram
+participant Voter
+rect rgb(255, 0, 0)
+note left of Voter: In Commit State
+end
+participant SC as SmartContract
+participant IPFS
+Voter->>SC: getCID()
+SC -->> Voter: IPFS CID
+Voter->>IPFS: RequestZKFiles(CID)
+IPFS-->>Voter: ProvingKey, CompiledVoterZK
+Voter->>SC: GetVoterAddedEvents()
+SC-->>Voter: IdentityCommitments
+Voter->>SC: GetTreeLevel()
+SC ->> Voter: TreeLevel
+Voter->>SC: GetExtNullifier()
+SC->>Voter: ExtNullifier
+Voter->>Voter: ConstructMerklePath(IdentityHashes, TreeLevel): MerklePath
+Voter->>Voter: GenVoteHash(VoteID, VoterSecret): SecretHash
+Voter->>Voter: Store(VoteID, VoterSecret)
+Voter->>Voter: GenWitness(SecretHash, CompiledVoterZK, Identity, MerklePath, TreeLevel, ExtNullifier): Witness, NullifierHash
+Note over Voter,Voter: NullifierHash = Hash(ExtNullifier, Identity, MerklePath)
+Voter->>Voter: GenProof(Witness, ProvingKey): Proof
+Voter->>SC: commitVote(SecretHash, TreeIndex, Proof, NullifierHash)
+SC->>SC: Verify(SecretHash, Proof, NullifierHash, TreeIndex)
+alt Valid Proof && NullifierHash is not used before
+  SC ->>SC:Store(VoterAddress => SecretHash)
+else
+  SC->>Voter: fail
+end
+
+

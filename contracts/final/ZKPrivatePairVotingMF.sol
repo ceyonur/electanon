@@ -52,7 +52,7 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     mapping(uint256 => uint256) private voteCounts;
     uint256 public committedCount;
     uint256 public votedCount;
-    mapping(address => bytes32) private secrets;
+    mapping(address => bytes32) private voteHashes;
     uint256[] private ranks;
 
     modifier deadlineNotPassed() {
@@ -152,7 +152,7 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         emit ProposersAdded(msg.sender, proposerList);
     }
 
-    function addIdCommitments(
+    function addVoters(
         uint256[TREE_SIZES] calldata _leaves,
         uint256 _root,
         uint256[2] calldata proofA,
@@ -198,7 +198,7 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     ) external timedTransitions atState(States.Commit) {
         require(_secretHash != 0, "secretHash cannot be 0");
         broadcastSignal(_secretHash, _proof, _nullifiersHash, _treeIndex);
-        secrets[msg.sender] = _secretHash;
+        voteHashes[msg.sender] = _secretHash;
         committedCount++;
         if (committedCount == getForestSize()) {
             toRevealState();
@@ -210,10 +210,13 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         timedTransitions
         atState(States.Reveal)
     {
-        require(secrets[msg.sender] != 0, "You have no pending vote commit!");
+        require(
+            voteHashes[msg.sender] != 0,
+            "You have no pending vote commit!"
+        );
         require(
             keccak256(abi.encodePacked(_voteRank, _salt)) ==
-                secrets[msg.sender],
+                voteHashes[msg.sender],
             "Wrong credentials"
         );
         if (voteCounts[_voteRank] == 0) {
@@ -222,7 +225,7 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         }
         voteCounts[_voteRank]++;
         votedCount++;
-        delete secrets[msg.sender];
+        delete voteHashes[msg.sender];
         if (votedCount == committedCount) {
             toCompletedState();
         }
@@ -235,7 +238,7 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     {
         return
             keccak256(abi.encodePacked(_voteRank, _salt)) ==
-            secrets[msg.sender];
+            voteHashes[msg.sender];
     }
 
     /* solhint-disable */

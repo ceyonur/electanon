@@ -1,0 +1,36 @@
+sequenceDiagram
+participant Voter as Voter
+participant Proposer
+participant EC as ElectionAuthority
+participant SC as Smart Contract
+participant BC as Blockchain
+rect rgb(255, 0, 0)
+note left of Voter: In Register State
+end
+loop For each Voter
+    Voter->>Voter: GenIdentity(): Identity
+    Voter->>Voter: GenIDCommit(Identity): IdentityCommitment
+    Voter->>Voter: Store(Identity, IdentityCommitment)
+rect rgb(0, 255, 153)
+    Note right of Voter: Secure Channel
+    Voter->>EC: IdentityCommitment
+end
+    EC->>EC: Store(IdentityCommitment)
+end
+loop For each Proposer
+rect rgb(0, 255, 153)
+    Note right of Proposer: Secure Channel
+    Proposer->>EC: Proposer Address
+end
+    EC->>EC: Store(Proposer Address)
+end
+EC->>SC: addProposers(ProposerAddressList)
+alt Proposers Not Added Before
+    SC->>SC: Store(ProposerAddressList)
+    SC->>BC: ProposersAddedEvent(ProposerAddressList)
+else
+    SC->>EC: fail
+end
+EC->>EC: genMerkleTree(IdentityCommitments): MerkleRoot
+EC->>SC: addVoters(IdentityCommitments, MerkleRoot)
+SC->>BC: VotersAddedEvent(IdentityCommitments, MerkleRoot)

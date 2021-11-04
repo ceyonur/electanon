@@ -1,14 +1,6 @@
 
   Contract: ZK Private PairVoting
 , Round: 19, BatchSize: 10
-
-
-
-
-
-
-
-
     ✓ should reveal and vote (324403ms, 1561895 gas)
 
 

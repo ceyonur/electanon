@@ -157,13 +157,13 @@ async function setupVoters(number, sender, contract) {
   let level = await contract.getTreeLevel();
   let tree = await genTree(level, idCommits);
   let root = await tree.root();
-  await contract.addIdCommitments(idCommits, root, {
+  await contract.addVoters(idCommits, root, {
     from: sender,
   });
   return { ids, idCommits };
 }
 
-async function setupVotersStatic(number, sender, contract, batchSize = 100) {
+async function setupVotersStatic(number, sender, contract, batchSize = number) {
   let idCommits = [];
   let level = await contract.getTreeLevel();
   if (number < batchSize) {
@@ -179,7 +179,7 @@ async function setupVotersStatic(number, sender, contract, batchSize = 100) {
   let root = await tree.root();
   let round = number / batchSize;
   for (let r = 0; r < round; r++) {
-    await contract.addIdCommitments(
+    await contract.addVoters(
       idCommits.slice(r * batchSize, r * batchSize + batchSize),
       root,
       {

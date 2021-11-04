@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {InsertionSortLib as SortLib} from "./InsertionSortLib.sol";
-
 library SimpleResultLib {
     //https://rosettacode.org/wiki/Permutations/Rank_of_a_permutation
 

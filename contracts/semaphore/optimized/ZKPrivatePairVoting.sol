@@ -55,7 +55,7 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
     mapping(uint256 => uint256) voteCounts;
     uint256 committedCount;
     uint256 votedCount;
-    mapping(address => bytes32) secrets;
+    mapping(address => bytes32) voteHashes;
     uint256[] ranks;
 
     modifier deadlineNotPassed() {
@@ -152,15 +152,16 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         emit ProposersAdded(msg.sender, proposerList);
     }
 
-    function addIdCommitments(
-        uint256[] calldata _identityCommitments,
-        uint256 _root
-    ) external atState(States.Register) onlyOwner {
+    function addVoters(uint256[] calldata _identityCommitments, uint256 _root)
+        external
+        atState(States.Register)
+        onlyOwner
+    {
         insertLeaves(_identityCommitments, _root);
         emit VoterIdCommitsAdded(msg.sender, _identityCommitments, _root);
     }
 
-    function addIdCommitment(uint256 _identityCommitment, uint256 _root)
+    function addVoter(uint256 _identityCommitment, uint256 _root)
         external
         atState(States.Register)
         onlyOwner
@@ -201,7 +202,7 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
     ) external timedTransitions atState(States.Commit) {
         require(_secretHash != 0, "secret hash cannot be 0");
         broadcastSignal(_secretHash, _proof, _nullifiersHash);
-        secrets[msg.sender] = _secretHash;
+        voteHashes[msg.sender] = _secretHash;
         committedCount++;
         if (committedCount == getLeavesNum()) {
             toRevealState();
@@ -213,10 +214,13 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         timedTransitions
         atState(States.Reveal)
     {
-        require(secrets[msg.sender] != 0, "You have no pending vote commit!");
+        require(
+            voteHashes[msg.sender] != 0,
+            "You have no pending vote commit!"
+        );
         require(
             keccak256(abi.encodePacked(_voteRank, _salt)) ==
-                secrets[msg.sender],
+                voteHashes[msg.sender],
             "Wrong credentials"
         );
         if (voteCounts[_voteRank] == 0) {
@@ -225,7 +229,7 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
         }
         voteCounts[_voteRank]++;
         votedCount++;
-        delete secrets[msg.sender];
+        delete voteHashes[msg.sender];
         if (votedCount == committedCount) {
             toCompletedState();
         }
@@ -238,7 +242,7 @@ contract ZKPrivatePairVoting is SemaphoreOpt {
     {
         return
             keccak256(abi.encodePacked(_voteRank, _salt)) ==
-            secrets[msg.sender];
+            voteHashes[msg.sender];
     }
 
     /* solhint-disable */

@@ -30,10 +30,10 @@ contract SemaphoreOptTest is SemaphoreOpt {
 
     constructor(uint256 _treeLevels) SemaphoreOpt(_treeLevels) {}
 
-    function addIdCommitments(
-        uint256[] memory _identityCommitments,
-        uint256 _root
-    ) external onlyOwner {
+    function addVoters(uint256[] memory _identityCommitments, uint256 _root)
+        external
+        onlyOwner
+    {
         insertLeaves(_identityCommitments, _root);
     }
 

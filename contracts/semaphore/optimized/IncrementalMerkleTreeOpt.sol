@@ -27,12 +27,9 @@ abstract contract IncrementalMerkleTreeOpt {
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     // The maximum tree depth
-    uint256 internal constant MAX_DEPTH = 32;
+    uint256 internal constant TREE_LEVEL = 20;
 
     uint256 zeroValue;
-
-    // The tree depth
-    uint256 internal treeLevels;
 
     uint256 leavesLength;
 
@@ -42,30 +39,15 @@ abstract contract IncrementalMerkleTreeOpt {
     /*
      * Stores the Merkle root and intermediate values (the Merkle path to the
      * the first leaf) assuming that all leaves are set to _zeroValue.
-     * @param _treeLevels The number of levels of the tree
-     * @param _zeroValue The value to set for every leaf. Ideally, this should
-     *                   be a nothing-up-my-sleeve value, so that nobody can
-     *                   say that the deployer knows the preimage of an empty
-     *                   leaf.
      */
-    constructor(uint256 _treeLevels) {
-        // Limit the Merkle tree to MAX_DEPTH levels
-        require(
-            _treeLevels > 0 && _treeLevels <= MAX_DEPTH,
-            "IncrementalMerkleTree: _treeLevels must be between 0 and 33"
-        );
-
-        treeLevels = _treeLevels;
-    }
 
     function insertLeaves(uint256[] memory _leaves, uint256 _root)
         internal
         returns (uint256, uint256)
     {
-        uint256 depth = uint256(treeLevels);
         uint256 tmpLeavesLength = leavesLength;
         require(
-            tmpLeavesLength + _leaves.length < uint256(2)**depth,
+            tmpLeavesLength + _leaves.length <= uint256(2)**TREE_LEVEL,
             "IncrementalMerkleTree: tree is full"
         );
         for (uint256 i = 0; i < _leaves.length; i++) {
@@ -85,9 +67,8 @@ abstract contract IncrementalMerkleTreeOpt {
         internal
         returns (uint256)
     {
-        uint256 depth = uint256(treeLevels);
         require(
-            _leaves.length < uint256(2)**depth,
+            _leaves.length <= uint256(2)**TREE_LEVEL,
             "IncrementalMerkleTree: tree is full"
         );
         for (uint256 i = 0; i < _leaves.length; i++) {
@@ -113,11 +94,11 @@ abstract contract IncrementalMerkleTreeOpt {
             "IncrementalMerkleTree: insertLeaf argument must be < MAX_SNARK_SCALAR_FIELD"
         );
 
-        uint256 depth = uint256(treeLevels);
+        uint256 depth = uint256(TREE_LEVEL);
         uint256 tmpLeavesLength = leavesLength;
 
         require(
-            leavesLength < uint256(2)**depth,
+            leavesLength <= uint256(2)**depth,
             "IncrementalMerkleTree: tree is full"
         );
 
@@ -128,8 +109,8 @@ abstract contract IncrementalMerkleTreeOpt {
         return tmpLeavesLength;
     }
 
-    function getTreeLevel() public view returns (uint256) {
-        return treeLevels;
+    function getTreeLevel() public pure returns (uint256) {
+        return TREE_LEVEL;
     }
 
     // function getLeaves() public view returns (uint256[] memory) {

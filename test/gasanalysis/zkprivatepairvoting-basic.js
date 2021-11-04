@@ -17,6 +17,7 @@ const {
   setupVoters,
   setupProposers,
   setupZKParamsPrivate,
+  setupVotersStatic,
 } = require("../utils/helpers");
 
 const { genCircuit, passwordToSalt } = require("libsemaphore");
@@ -54,41 +55,48 @@ contract("ZK Private PairVoting", (accounts) => {
       COMMIT_LIFETIME,
       REVEAL_LIFETIME
     );
-    let result = await setupVoters(voterCount, this.owner, this.contract);
-    this.ids = result.ids;
-    this.leaves = result.idCommits;
-    this.numLevel = await this.contract.getTreeLevel();
-    this.extNullifier = await this.contract.getActiveExternalNullifier();
-    await setupProposers(
-      this.owner,
-      accounts.slice(0, proposalCount),
-      this.contract
+    //let result = await setupVotersStatic(voterCount, this.owner, this.contract);
+    await this.contract.addVoters(
+      Array.from(Array(voterCount).keys()),
+      123213,
+      {
+        from: accounts[0],
+      }
     );
+    // this.ids = result.ids;
+    // this.leaves = result.idCommits;
+    // this.numLevel = await this.contract.getTreeLevel();
+    // this.extNullifier = await this.contract.getActiveExternalNullifier();
+    // await setupProposers(
+    //   this.owner,
+    //   accounts.slice(0, proposalCount),
+    //   this.contract
+    // );
     await setupProposals(this.contract, accounts, proposalCount);
-    let votes = [];
-    for (let i = 0; i < voterCount; i++) {
-      let vote = await votePrivate(
-        i,
-        PASSWORD + i,
-        accounts[i],
-        this.contract,
-        this.ids[i],
-        this.leaves,
-        this.numLevel,
-        this.extNullifier,
-        circuit,
-        provingKey
-      );
-      votes[i] = vote;
-    }
-    for (let i = 0; i < voterCount; i++) {
-      let password32 = passwordToSalt(PASSWORD + i);
-      await this.contract.revealVote(votes[i], password32, {
-        from: accounts[i],
-      });
-    }
-    const gasResult = await this.contract.electionResult.estimateGas();
-    console.log("Election Result estimated Gas: " + gasResult);
+    // let votes = [];
+    // for (let i = 0; i < voterCount; i++) {
+    //   let vote = await votePrivate(
+    //     i,
+    //     PASSWORD + i,
+    //     accounts[i],
+    //     this.contract,
+    //     this.ids[i],
+    //     this.leaves,
+    //     this.numLevel,
+    //     this.extNullifier,
+    //     circuit,
+    //     provingKey
+    //   );
+    //   votes[i] = vote;
+    // }
+    // for (let i = 0; i < voterCount; i++) {
+    //   let password32 = passwordToSalt(PASSWORD + i);
+    //   await this.contract.revealVote(votes[i], password32, {
+    //     from: accounts[i],
+    //   });
+    // }
+    // const gasResult = await this.contract.electionResult.estimateGas();
+    // console.log("Election Result estimated Gas: " + gasResult);
     //expect(result.toNumber()).to.greaterThan(0);
   }).timeout(0);
 });

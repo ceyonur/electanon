@@ -1,0 +1,12 @@
+sequenceDiagram
+rect rgb(255, 0, 0)
+note left of EA: In Setup State
+end
+participant EA as ElectionAuthority
+EA ->> EA: GenZK(Params, Circ): CircC, VerifK, ProveK
+EA ->> IPFS: Store(CircC, ProveK)
+IPFS -->> EA: CID (Content ID)
+EA ->> EA: GenVerifSC(VerifK): VerifierSmartContract
+note over EA, Blockchain: Smart Contract includes Verifier Smart Contract. <br> LT: Lifetime
+EA->>Blockchain: DeploySC(CID,MaxProposalCount,ProposalLT,CommitLT,RevealLT)
+Blockchain -->> EA: SmartContract Address

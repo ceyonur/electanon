@@ -1,4 +1,4 @@
-const ZKPrivatePairVotingBasic = artifacts.require("ZKPrivatePairVoting");
+const ZKPrivatePairVotingBasic = artifacts.require("ZKPrivatePairVotingBasic");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");

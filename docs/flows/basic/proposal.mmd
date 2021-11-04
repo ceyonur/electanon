@@ -1,0 +1,16 @@
+sequenceDiagram
+participant Proposer
+participant SC as Smart Contract
+participant BC as Blockchain
+rect rgb(255, 0, 0)
+note left of Proposer: In Proposal State
+end
+Proposer ->> SC: propose(Proposal)
+alt Proposer is eligible
+  note over SC,SC: ProposalID is initially 0
+  SC ->> SC: Store(ProposalID++)
+  SC ->> SC: removeProposer(Proposer)
+  SC ->> BC: ProposedEvent(ProposalID, Proposal)
+else
+  SC ->> Proposer: fail
+end

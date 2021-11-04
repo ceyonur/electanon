@@ -41,10 +41,7 @@ contract SemaphoreOpt is Verifier, IncrementalMerkleTreeOpt, Ownable {
      * @param _treeLevels The depth of the identity tree.
      * @param _firstExternalNullifier The first identity nullifier to add.
      */
-    constructor(uint256 _treeLevels)
-        IncrementalMerkleTreeOpt(_treeLevels)
-        Ownable()
-    {
+    constructor() IncrementalMerkleTreeOpt() Ownable() {
         addEn(uint256(uint160(address(this))));
     }
 

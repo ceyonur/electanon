@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import {SimpleResultLib2 as TallyLib} from "./libs/SimpleResultLib2.sol";
+import {BordaCountLib as TallyLib} from "./libs/BordaCountLib.sol";
 import "./libs/Ownable.sol";
 
 contract PairVotingBasic2 is Ownable {

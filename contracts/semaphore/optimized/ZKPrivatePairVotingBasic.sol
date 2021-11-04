@@ -51,11 +51,11 @@ contract ZKPrivatePairVotingBasic is SemaphoreOpt {
     uint256 revealLifetime;
 
     mapping(address => bool) proposers;
-    uint256 proposerCount;
+    uint256 proposerCount = 0;
     mapping(uint256 => uint256) voteCounts;
-    uint256 committedCount;
-    uint256 votedCount;
-    mapping(address => bytes32) secrets;
+    uint256 public committedCount = 0;
+    uint256 public votedCount = 0;
+    mapping(address => bytes32) voteHashes;
 
     modifier deadlineNotPassed() {
         require(block.timestamp >= deadline, "State deadline is passed!");
@@ -68,12 +68,12 @@ contract ZKPrivatePairVotingBasic is SemaphoreOpt {
     }
 
     modifier atState(States _state) {
-        require(state == _state, "Function cannot be called at this time.");
+        require(state == _state, "cannot be called.");
         _;
     }
 
     modifier atCompletedState() {
-        require(isCompletedState(), "Function cannot be called at this time.");
+        require(isCompletedState(), "election is completed.");
         _;
     }
 
@@ -87,12 +87,11 @@ contract ZKPrivatePairVotingBasic is SemaphoreOpt {
     }
 
     constructor(
-        uint256 _treeLevels,
         uint256 _maxProposalCount,
         uint256 _proposalLifetime,
         uint256 _commitLifetime,
         uint256 _revealLifetime
-    ) SemaphoreOpt(_treeLevels) {
+    ) SemaphoreOpt() {
         require(
             _maxProposalCount <= MAX_PROPOSAL_CAP,
             "maxProposalCount is too high!"
@@ -151,15 +150,16 @@ contract ZKPrivatePairVotingBasic is SemaphoreOpt {
         emit ProposersAdded(msg.sender, proposerList);
     }
 
-    function addIdCommitments(
-        uint256[] calldata _identityCommitments,
-        uint256 _root
-    ) external atState(States.Register) onlyOwner {
+    function addVoters(uint256[] calldata _identityCommitments, uint256 _root)
+        external
+        atState(States.Register)
+        onlyOwner
+    {
         insertLeaves(_identityCommitments, _root);
         emit VoterIdCommitsAdded(msg.sender, _identityCommitments, _root);
     }
 
-    function addIdCommitment(uint256 _identityCommitment, uint256 _root)
+    function addVoter(uint256 _identityCommitment, uint256 _root)
         external
         atState(States.Register)
         onlyOwner
@@ -200,7 +200,7 @@ contract ZKPrivatePairVotingBasic is SemaphoreOpt {
     ) external timedTransitions atState(States.Commit) {
         require(_secretHash != 0, "secret hash cannot be 0");
         broadcastSignal(_secretHash, _proof, _nullifiersHash);
-        secrets[msg.sender] = _secretHash;
+        voteHashes[msg.sender] = _secretHash;
         committedCount++;
         if (committedCount == getLeavesNum()) {
             toRevealState();
@@ -212,14 +212,17 @@ contract ZKPrivatePairVotingBasic is SemaphoreOpt {
         timedTransitions
         atState(States.Reveal)
     {
-        require(secrets[msg.sender] != 0, "You have no pending vote commit!");
+        require(
+            voteHashes[msg.sender] != 0,
+            "You have no pending vote commit!"
+        );
         require(
             keccak256(abi.encodePacked(_voteRank, _salt)) ==
-                secrets[msg.sender],
+                voteHashes[msg.sender],
             "Wrong credentials"
         );
         votedCount++;
-        delete secrets[msg.sender];
+        delete voteHashes[msg.sender];
         uint256[] memory v = SimpleResultLib.get_permutation(
             _voteRank,
             proposalIdCt
@@ -239,7 +242,7 @@ contract ZKPrivatePairVotingBasic is SemaphoreOpt {
     {
         return
             keccak256(abi.encodePacked(_voteRank, _salt)) ==
-            secrets[msg.sender];
+            voteHashes[msg.sender];
     }
 
     /* solhint-disable */
@@ -247,8 +250,7 @@ contract ZKPrivatePairVotingBasic is SemaphoreOpt {
     //https://en.wikipedia.org/wiki/Ranked_pairs
     /* solhint-enable */
     function electionResult() external view atCompletedState returns (uint256) {
-        uint256 matrixSize = proposalIdCt;
-        return SimpleResultLib.calculateResult(matrixSize, voteCounts);
+        return SimpleResultLib.calculateResult(proposalIdCt, voteCounts);
     }
 
     function isEligibleProposer(address account) external view returns (bool) {
@@ -284,6 +286,14 @@ contract ZKPrivatePairVotingBasic is SemaphoreOpt {
         }
         uint256 r = SimpleResultLib._mr_rank1(n, v, inv);
         return r;
+    }
+
+    function unrank(uint256 rank) external view returns (uint256[] memory vec) {
+        uint256[] memory v = SimpleResultLib.get_permutation(
+            rank,
+            proposalIdCt
+        );
+        return v;
     }
 
     /// PRIVATE CODE
