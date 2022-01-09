@@ -1,4 +1,4 @@
-const ZKPrivatePairVotingBasic = artifacts.require("ZKPrivatePairVotingBasic");
+const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVoting");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -14,7 +14,6 @@ chai.use(chaiAsPromised);
 const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const COMMIT_LIFETIME = moment.duration(30, "days").asSeconds();
 const REVEAL_LIFETIME = moment.duration(30, "days").asSeconds();
-const TREE_LEVEL = 20;
 const {
   setupProposals,
   setupProposers,
@@ -31,8 +30,7 @@ contract("ZK Private PairVoting", (accounts) => {
     );
   });
   it("should setup", async () => {
-    this.contract = await ZKPrivatePairVotingBasic.new(
-      TREE_LEVEL,
+    this.contract = await ZKPrivatePairVoting.new(
       proposalCount,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,

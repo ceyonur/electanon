@@ -1,0 +1,42 @@
+
+  Contract: ZK Private PairVoting
+, Round: 1, BatchSize: 10
+genVoteWitness: 1.456s
+genProof: 8.616s
+genVoteWitness: 1.435s
+genProof: 9.264s
+genVoteWitness: 1.476s
+genProof: 8.660s
+genVoteWitness: 1.513s
+genProof: 8.557s
+genVoteWitness: 1.457s
+genProof: 8.844s
+genVoteWitness: 1.464s
+genProof: 8.845s
+genVoteWitness: 1.494s
+genProof: 9.015s
+genVoteWitness: 1.462s
+genProof: 8.751s
+genVoteWitness: 1.443s
+genProof: 8.752s
+genVoteWitness: 1.440s
+genProof: 8.811s
+    ✓ should reveal and vote (114058ms, 3124058 gas)
+
+
+
+
+.. code-block:: shell
+
+  ·-------------------------------------------|---------------------------|-------------|----------------------------·
+  |            Solc version: 0.8.7            ·  Optimizer enabled: true  ·  Runs: 200  ·  Block limit: 6718946 gas  │
+  ············································|···························|·············|·····························
+  |  Methods                                  ·               71 gwei/gas               ·      3967.57 eur/eth       │
+  ·····························|··············|·············|·············|·············|·············|···············
+  |  Contract                  ·  Method      ·  Min        ·  Max        ·  Avg        ·  # calls    ·  eur (avg)   │
+  ·····························|··············|·············|·············|·············|·············|···············
+  |  ZKPrivatePairVotingBasic  ·  commitVote  ·     312389  ·     312425  ·     312406  ·         11  ·       88.00  │
+  ·----------------------------|--------------|-------------|-------------|-------------|-------------|--------------·
+
+  1 passing (2m)
+

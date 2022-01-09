@@ -4,27 +4,28 @@ rect rgb(255, 0, 0)
 note left of Voter: In Commit State
 end
 participant SC as SmartContract
-participant IPFS
-Voter->>SC: getCID()
-SC -->> Voter: IPFS CID
-Voter->>IPFS: RequestZKFiles(CID)
-IPFS-->>Voter: ProvingKey, CompiledVoterZK
-Voter->>SC: GetVoterAddedEvents()
-SC-->>Voter: IdentityCommitments
-Voter->>SC: GetTreeLevel()
-SC ->> Voter: TreeLevel
-Voter->>SC: GetExtNullifier()
-SC->>Voter: ExtNullifier
-Voter->>Voter: ConstructMerklePath(IdentityHashes, TreeLevel): MerklePath
-Voter->>Voter: GenVoteHash(VoteID, VoterSecret): SecretHash
-Voter->>Voter: Store(VoteID, VoterSecret)
-Voter->>Voter: GenWitness(SecretHash, CompiledVoterZK, Identity, MerklePath, TreeLevel, ExtNullifier): Witness, NullifierHash
-Note over Voter,Voter: NullifierHash = Hash(ExtNullifier, Identity, MerklePath)
-Voter->>Voter: GenProof(Witness, ProvingKey): Proof
-Voter->>SC: commitVote(SecretHash, TreeIndex, Proof, NullifierHash)
-SC->>SC: Verify(SecretHash, Proof, NullifierHash, TreeIndex)
-alt Valid Proof && NullifierHash is not used before
-  SC ->>SC:Store(VoterAddress => SecretHash)
+Voter->>Blockchain: filterVoterAddedEvents()
+Blockchain-->>Voter: IDCList
+Voter->>SC: getTreeLevel()
+SC-->>Voter: TreeLevel
+Voter->>SC: getExtNullifier()
+SC-->>Voter: ExtN
+Voter->>Voter: genTree(IDCList): MerkleTree
+Note over Voter,Voter: Voter uses own stored IDC
+Voter->>Voter: constructMerkleProof(MerkleTree, IDC): MerkleProof
+Voter->>Voter: genVoteHash(VID, VSk): VH
+Voter->>Voter: store(VID, VSk)
+Note over Voter: MPI is a component of MerkleProof
+Voter->>Voter: genNullifierHash(ExtN, ID, MPI): NH
+Voter ->>Voter: sign(VH, PrivK): Signature
+Voter ->> IPFS: getFiles(URL)
+IPFS -->> Voter: CirC, ProveKey
+Voter->>Voter: genWitness(CirC, VH, ID, MerkleProof, TreeLevel, ExtN, Signature): Witness
+Voter->>Voter: genProof(Witness, ProveKey): Proof
+Voter->>SC: commitVote(VH, Proof, NH)
+SC->>SC: verifyProof(VH, Proof, NH, MRS, ExtN)
+alt Valid Proof && NH is not registered before
+  SC->>SC:store(VoterAddress => VH, NH)
 else
   SC->>Voter: fail
 end

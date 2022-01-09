@@ -1,12 +1,19 @@
 sequenceDiagram
 participant Voter
 participant SC as SmartContract
+participant TallyLib
+note left of TallyLib: TallyLib is imported by <br> SmartContract
 rect rgb(255, 0, 0)
 note left of Voter: In Reveal State
 end
-Voter->>SC: revealVote(VoteID, VoterSecret)
-alt Hash(VoteID,VoterSecret) == Voter->VoteHash
-SC->>SC: Store(VoteID)
+Voter->>SC: revealVote(VID, VSk)
+Note over Voter, SC: nc is the candidate count
+alt 0 < VoteID < nc!-1 AND <br> hash(VID,VSk) == VoterAddress->VH
+SC->>SC: delete(Voter->VH)
+
+Note over SC, TallyLib: TallyState is the state storage
+SC->>TallyLib: tally(CandidateCount, VID, TallyState)
+TallyLib ->> TallyLib: changeState(TallyState)
 else
 SC->>Voter: fail
 end

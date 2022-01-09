@@ -1,0 +1,33 @@
+
+  Contract: ZK Private PairVoting
+ProposalCount: 45, VoterCount: 10
+
+    1) should not exceed gas
+
+
+
+
+.. code-block:: shell
+
+  ·-----------------------|---------------------------|-------------|-----------------------------·
+  |  Solc version: 0.8.7  ·  Optimizer enabled: true  ·  Runs: 200  ·  Block limit: 30000000 gas  │
+  ························|···························|·············|······························
+  |  Methods                                                                                      │
+  ·············|··········|·············|·············|·············|·············|················
+  |  Contract  ·  Method  ·  Min        ·  Max        ·  Avg        ·  # calls    ·  eur (avg)    │
+  ·------------|----------|-------------|-------------|-------------|-------------|---------------·
+
+  0 passing (2s)
+  1 failing
+
+  1) Contract: ZK Private PairVoting
+       should not exceed gas:
+     Error: VM Exception while processing transaction: reverted with reason string 'maxProposalCount is too high!'
+      at ZKPrivatePairVotingBasic.constructor (contracts/semaphore/optimized/ZKPrivatePairVotingBasic.sol:95)
+      at /Users/ceyonur/workspace/boun/gentract/node_modules/@nomiclabs/truffle-contract/lib/execute.js:229:26
+      at Function.new (node_modules/@nomiclabs/truffle-contract/lib/contract/constructorMethods.js:58:53)
+      at Context.<anonymous> (test/gasanalysis/zkprivatepairvoting-basic.js:53:55)
+      at processImmediate (node:internal/timers:464:21)
+
+
+

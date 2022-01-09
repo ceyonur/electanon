@@ -1,5 +1,4 @@
 const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVoting");
-const Ballot = artifacts.require("analysis/Ballot");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -11,16 +10,19 @@ chai.use(require("chai-string"));
 const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const COMMIT_LIFETIME = moment.duration(30, "days").asSeconds();
 const REVEAL_LIFETIME = moment.duration(30, "days").asSeconds();
-const TREE_LEVEL = 20;
 const PASSWORD = "password";
 const {
   setupProposals,
-  setupVoters,
   setupProposers,
   setupZKParamsPrivate,
+  setupVotersStatic,
 } = require("../utils/helpers");
 
-const { genCircuit, passwordToSalt } = require("libsemaphore");
+const {
+  genCircuit,
+  passwordToSalt,
+  genStaticIdentity,
+} = require("libsemaphore");
 
 const path = require("path");
 const fs = require("fs");
@@ -46,21 +48,19 @@ contract("ZK Private PairVoting", (accounts) => {
       "ProposalCount: " + proposalCount + ", VoterCount: " + voterCount
     );
   });
-  beforeEach(async () => {
+
+  it("should not exceed gas", async () => {
     this.contract = await ZKPrivatePairVoting.new(
-      TREE_LEVEL,
       proposalCount,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,
       REVEAL_LIFETIME
     );
-    this.ids = await setupVoters(voterCount, this.owner, this.contract);
-    this.leaves = await this.contract.getLeaves();
+    let result = await setupVotersStatic(voterCount, this.owner, this.contract);
+    this.ids = result.ids;
+    this.leaves = result.idCommits;
     this.numLevel = await this.contract.getTreeLevel();
     this.extNullifier = await this.contract.getActiveExternalNullifier();
-  });
-
-  it("should not exceed gas", async () => {
     await setupProposers(
       this.owner,
       accounts.slice(0, proposalCount),
@@ -74,7 +74,7 @@ contract("ZK Private PairVoting", (accounts) => {
         PASSWORD + i,
         accounts[i],
         this.contract,
-        this.ids[i],
+        genStaticIdentity(i),
         this.leaves,
         this.numLevel,
         this.extNullifier,
@@ -89,35 +89,11 @@ contract("ZK Private PairVoting", (accounts) => {
         from: accounts[i],
       });
     }
-    const result = await this.contract.electionResult.estimateGas();
-    console.log("Election Result estimated Gas: " + result);
-    //expect(result.toNumber()).to.greaterThan(0);
+    const gasResult = await this.contract.electionResult.estimateGas();
+    console.log("Election Result estimated Gas: " + gasResult);
+    //chai.expect(result.toNumber()).to.greaterThan(0);
   }).timeout(0);
 });
-
-contract("Ballot", (accounts) => {
-  beforeEach(async () => {
-    this.contract = await Ballot.new(accounts.slice(0, voterCount));
-  });
-
-  it("should not exceed gas", async () => {
-    for (let i = 0; i < proposalCount; i++) {
-      await this.contract.propose("platform" + i, {
-        from: accounts[i],
-      });
-    }
-
-    for (let i = 0; i < voterCount; i++) {
-      await this.contract.vote(getRandom(proposalCount), {
-        from: accounts[i],
-      });
-    }
-  });
-});
-
-function getRandom(proposalCt) {
-  return Math.floor(Math.random() * Number(proposalCt));
-}
 
 async function votePrivate(
   rank,

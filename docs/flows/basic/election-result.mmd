@@ -1,12 +1,21 @@
 sequenceDiagram
 rect rgb(255, 0, 0)
-note left of Client: In Completed State (or BlockNumber > RevealLifetime)
+note left of User: In Completed State
 end
-participant Client
-note right of Client: Anyone in the Blockchain network <br> can be a client
+participant User
+note right of User: Anyone in the Blockchain network <br> can be a user
 participant SC as SmartContract
+note left of TallyLib: TallyLib is imported by <br> SmartContract
+participant TallyLib
 
-Client->>SC: electionResult()
-SC ->>Client: calculateResult(): Winner
+
+User->>SC: electionResult()
+Note over SC, TallyLib: nc is the candidate count
+SC ->> TallyLib: calculateResult(nc, TallyState);
+Note over TallyLib, SC: WinnerID is in form of <br> candidateID
+TallyLib -->>SC: WinnerID
+SC -->>User: WinnerID
+User ->>Blockchain: filterProposedEvents(WinnerID)
+Blockchain -->>User: Proposal
 
 

@@ -3,10 +3,11 @@ rect rgb(255, 0, 0)
 note left of EA: In Setup State
 end
 participant EA as ElectionAuthority
-EA ->> EA: GenZK(Params, Circ): CircC, VerifK, ProveK
-EA ->> IPFS: Store(CircC, ProveK)
-IPFS -->> EA: CID (Content ID)
-EA ->> EA: GenVerifSC(VerifK): VerifierSmartContract
-note over EA, Blockchain: Smart Contract includes Verifier Smart Contract. <br> LT: Lifetime
-EA->>Blockchain: DeploySC(CID,MaxProposalCount,ProposalLT,CommitLT,RevealLT)
+Note over EA: Perpetual Power of Tau is completed. Params are available.
+EA ->> EA: genZK(Params, Circ): CircC, VerifyK, ProveK
+EA ->> IPFS: store(CircC, ProveK)
+IPFS -->> EA: URL
+EA ->> EA: genVerifierSC(VerifyK): VerifierSC
+EA ->> EA: embed(MainSC,VerifierSC): SC
+EA->>Blockchain: deploySC(URL,TreeLevel,MaxProposalCount,ProposalLT,CommitLT,RevealLT)
 Blockchain -->> EA: SmartContract Address

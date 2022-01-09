@@ -1,0 +1,11 @@
+Generating circuit.json
+206.47s user 8.78s system 104% cpu 3:25.11 total
+
+Generating proving_key.json
+703.56s user 5.33s system 98% cpu 11:56.52 total
+
+Generating proving_key.bin
+67.86s user 0.75s system 99% cpu 1:08.85 total
+
+Generating verifier.sol
+0.39s user 0.07s system 83% cpu 0.546 total

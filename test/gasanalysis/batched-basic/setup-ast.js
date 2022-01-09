@@ -1,6 +1,4 @@
-const ZKPrivatePairVotingBasic = artifacts.require(
-  "ZKPrivatePairVotingBasicAst"
-);
+const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVotingAst");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -33,7 +31,7 @@ contract("ZK Private PairVoting", (accounts) => {
     );
   });
   it("should setup", async () => {
-    this.contract = await ZKPrivatePairVotingBasic.new(
+    this.contract = await ZKPrivatePairVoting.new(
       proposalCount,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,

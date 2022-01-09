@@ -7,10 +7,11 @@ note left of Proposer: In Proposal State
 end
 Proposer ->> SC: propose(Proposal)
 alt Proposer is eligible
-  note over SC,SC: ProposalID is initially 0
-  SC ->> SC: Store(ProposalID++)
+  note over SC,SC: CID, i.e candidate ID, is initially 0
+  SC ->> SC: CID = CID + 1
+  SC ->> SC: store(CID)
   SC ->> SC: removeProposer(Proposer)
-  SC ->> BC: ProposedEvent(ProposalID, Proposal)
+  SC ->> BC: emit ProposedEvent(CID, Proposal)
 else
   SC ->> Proposer: fail
 end
