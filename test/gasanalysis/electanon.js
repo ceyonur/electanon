@@ -1,4 +1,4 @@
-const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVoting");
+const ElectAnon = artifacts.require("ElectAnon");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -42,7 +42,7 @@ const circuit = genCircuit(cirDef);
 const proposalCount = Number(process.env.PCOUNT) || 10;
 const voterCount = Number(process.env.VCOUNT) || 10;
 
-contract("ZK Private PairVoting", (accounts) => {
+contract("ElectAnon gas analysis", (accounts) => {
   before(() => {
     console.log(
       "ProposalCount: " + proposalCount + ", VoterCount: " + voterCount
@@ -50,7 +50,7 @@ contract("ZK Private PairVoting", (accounts) => {
   });
 
   it("should not exceed gas", async () => {
-    this.contract = await ZKPrivatePairVoting.new(
+    this.contract = await ElectAnon.new(
       proposalCount,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,

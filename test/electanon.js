@@ -1,4 +1,4 @@
-const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVoting");
+const ElectAnon = artifacts.require("ElectAnon");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -17,7 +17,7 @@ const {
   setupProposals,
   setupZKParamsPrivate,
   voteWithArrayPrivate,
-} = require("../../utils/helpers");
+} = require("./utils/helpers");
 
 const {
   genIdentity,
@@ -31,7 +31,6 @@ const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const COMMIT_LIFETIME = moment.duration(30, "days").asSeconds();
 const REVEAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const MAX_PROPOSAL_COUNT = 4;
-const TREE_LEVEL = 20;
 const PASSWORD = "thisshouldbe32bytespassword";
 const PASSWORD_32 = passwordToSalt(PASSWORD);
 
@@ -39,23 +38,22 @@ const path = require("path");
 const fs = require("fs");
 const circuitPath = path.join(
   __dirname,
-  "../../../circuits/semaphore/build/circuit.json"
+  "../circuits/semaphore/build/circuit.json"
 );
 const provingKeyPath = path.join(
   __dirname,
-  "../../../circuits/semaphore/build/proving_key.bin"
+  "../circuits/semaphore/build/proving_key.bin"
 );
 
 const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());
 const provingKey = fs.readFileSync(provingKeyPath);
 const circuit = genCircuit(cirDef);
 
-contract("ZKPrivatePairVoting", (accounts) => {
+contract("ElectAnon", (accounts) => {
   beforeEach(async () => {
     this.initialManagers = accounts.slice(1, 4);
     this.owner = accounts[0];
-    this.contract = await ZKPrivatePairVoting.new(
-      TREE_LEVEL,
+    this.contract = await ElectAnon.new(
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,
@@ -98,14 +96,7 @@ contract("ZKPrivatePairVoting", (accounts) => {
     await this.contract.addVoters(idCommits, root, {
       from: this.owner,
     });
-    const leaves = await this.contract.getLeaves();
-    expect(leaves.length).equal(idCommits.length);
 
-    const leavesHex = leaves.map(BigInt);
-    for (let i = 0; i < idCommits.length; i++) {
-      const containsLeaf = leavesHex.indexOf(BigInt(idCommits[i])) > -1;
-      expect(containsLeaf).to.be.true;
-    }
     let contractRoot = await this.contract.getRoot();
     expect(contractRoot.toString()).to.be.equal(root);
   });
@@ -120,17 +111,10 @@ contract("ZKPrivatePairVoting", (accounts) => {
     let level = await this.contract.getTreeLevel();
     let tree = await genTree(level, idCommits);
     let root = await tree.root();
-    await this.contract.replaceIdCommitmentsTree(idCommits, root, {
+    await this.contract.replaceIdCommitments(idCommits, root, {
       from: this.owner,
     });
-    const leaves = await this.contract.getLeaves();
-    expect(leaves.length).equal(idCommits.length);
 
-    const leavesHex = leaves.map(BigInt);
-    for (let i = 0; i < idCommits.length; i++) {
-      const containsLeaf = leavesHex.indexOf(BigInt(idCommits[i])) > -1;
-      expect(containsLeaf).to.be.true;
-    }
     let contractRoot = await this.contract.getRoot();
     expect(contractRoot.toString()).to.be.equal(root);
   });
@@ -271,11 +255,6 @@ contract("ZKPrivatePairVoting", (accounts) => {
     }
   });
 
-  it("should return correct rank for the array", async () => {
-    const result = await this.contract.getRank.call([1, 2, 3, 4]);
-    expect(result.toNumber()).to.be.equal(23);
-  });
-
   it("should change state to commit after deadline", async () => {
     await setupProposers(
       this.owner,
@@ -304,6 +283,26 @@ contract("ZKPrivatePairVoting", (accounts) => {
 
     realState = await this.contract.currentRealState.call();
     expect(realState).to.be.equal("Commit");
+  });
+
+  it("should return correct rank for the array", async () => {
+    await setupProposers(
+      this.owner,
+      accounts.slice(0, MAX_PROPOSAL_COUNT),
+      this.contract
+    );
+    await setupProposals(this.contract, accounts, 4);
+    await advanceTimeAndBlock(PROPOSAL_LIFETIME + 60);
+    try {
+      await this.contract.propose(web3.utils.fromAscii("platform" + 1), {
+        from: accounts[1],
+      });
+    } catch (e) {
+      expect(e.message.endsWith("cannot be called at this time."));
+    }
+
+    const result = await this.contract.getRank.call([1, 2, 3, 4]);
+    expect(result.toNumber()).to.be.equal(23);
   });
 
   it("should change state to reveal after deadline", async () => {
@@ -359,11 +358,10 @@ contract("ZKPrivatePairVoting", (accounts) => {
     );
   });
 });
-contract("ZKPrivatePairVoting commit", (accounts) => {
+contract("ElectAnon commit", (accounts) => {
   before(async () => {
     this.owner = accounts[0];
-    this.contract = await ZKPrivatePairVoting.new(
-      TREE_LEVEL,
+    this.contract = await ElectAnon.new(
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,
@@ -372,17 +370,18 @@ contract("ZKPrivatePairVoting commit", (accounts) => {
         from: this.owner,
       }
     );
-    this.ids = await setupVoters(3, this.owner, this.contract);
+    let res = await setupVoters(3, this.owner, this.contract);
+    this.ids = res.ids;
+    this.idCommits = res.idCommits;
     await setupProposers(this.owner, accounts.slice(0, 2), this.contract);
     await setupProposals(this.contract, accounts, 2);
-    this.leaves = await this.contract.getLeaves();
     this.numLevel = await this.contract.getTreeLevel();
     this.extNullifier = await this.contract.getActiveExternalNullifier();
     this.params = await setupZKParamsPrivate(
       1,
       PASSWORD,
       this.ids[0],
-      this.leaves,
+      this.idCommits,
       this.numLevel,
       this.extNullifier,
       circuit,
@@ -460,11 +459,10 @@ contract("ZKPrivatePairVoting commit", (accounts) => {
   });
 });
 
-contract("ZKPrivatePairVoting reveal", (accounts) => {
+contract("ElectAnon reveal", (accounts) => {
   before(async () => {
     this.owner = accounts[0];
-    this.contract = await ZKPrivatePairVoting.new(
-      TREE_LEVEL,
+    this.contract = await ElectAnon.new(
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,
@@ -473,10 +471,11 @@ contract("ZKPrivatePairVoting reveal", (accounts) => {
         from: this.owner,
       }
     );
-    this.ids = await setupVoters(3, this.owner, this.contract);
+    let res = await setupVoters(3, this.owner, this.contract);
+    this.ids = res.ids;
+    this.idCommits = res.idCommits;
     await setupProposers(this.owner, accounts.slice(0, 3), this.contract);
     await setupProposals(this.contract, accounts, 2);
-    this.leaves = await this.contract.getLeaves();
     this.numLevel = await this.contract.getTreeLevel();
     this.extNullifier = await this.contract.getActiveExternalNullifier();
     this.vote = 1;
@@ -484,7 +483,7 @@ contract("ZKPrivatePairVoting reveal", (accounts) => {
       this.vote,
       PASSWORD,
       this.ids[0],
-      this.leaves,
+      this.idCommits,
       this.numLevel,
       this.extNullifier,
       circuit,
@@ -573,11 +572,10 @@ contract("ZKPrivatePairVoting reveal", (accounts) => {
   });
 });
 
-contract("ZKPrivatePairVoting result", (accounts) => {
+contract("ElectAnon result", (accounts) => {
   before(async () => {
     this.owner = accounts[0];
-    this.contract = await ZKPrivatePairVoting.new(
-      TREE_LEVEL,
+    this.contract = await ElectAnon.new(
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,
@@ -586,22 +584,23 @@ contract("ZKPrivatePairVoting result", (accounts) => {
         from: this.owner,
       }
     );
-    this.ids = await setupVoters(3, this.owner, this.contract);
+    let res = await setupVoters(3, this.owner, this.contract);
+    this.ids = res.ids;
+    this.idCommits = res.idCommits;
     await setupProposers(this.owner, accounts.slice(0, 2), this.contract);
     await setupProposals(this.contract, accounts, 2);
-    this.leaves = await this.contract.getLeaves();
     this.numLevel = await this.contract.getTreeLevel();
     this.extNullifier = await this.contract.getActiveExternalNullifier();
   });
 
   it("should be able to call election result after deadline", async () => {
     let rank = await voteWithArrayPrivate(
-      [1, 2, 3],
+      [1, 2],
       PASSWORD,
       accounts[1],
       this.contract,
       this.ids[0],
-      this.leaves,
+      this.idCommits,
       this.numLevel,
       this.extNullifier,
       circuit,

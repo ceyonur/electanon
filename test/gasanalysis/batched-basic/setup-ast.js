@@ -1,12 +1,7 @@
-const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVotingAst");
+const ElectAnon = artifacts.require("ElectAnonAst");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
-const {
-  genTree,
-  genStaticIdentity,
-  genIdentityCommitment,
-} = require("libsemaphore");
 const moment = require("moment");
 
 chai.use(chaiAsPromised);
@@ -15,7 +10,6 @@ chai.use(require("chai-string"));
 const expect = chai.expect;
 chai.use(chaiAsPromised);
 
-const TREE_LEVEL = 20;
 const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const COMMIT_LIFETIME = moment.duration(30, "days").asSeconds();
 const REVEAL_LIFETIME = moment.duration(30, "days").asSeconds();
@@ -31,7 +25,7 @@ contract("ZK Private PairVoting", (accounts) => {
     );
   });
   it("should setup", async () => {
-    this.contract = await ZKPrivatePairVoting.new(
+    this.contract = await ElectAnon.new(
       proposalCount,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,

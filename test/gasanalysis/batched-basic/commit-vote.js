@@ -1,4 +1,4 @@
-const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVoting");
+const ElectAnon = artifacts.require("ElectAnon");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -43,7 +43,7 @@ contract("ZK Private PairVoting", (accounts) => {
     console.log(", Round: " + round + ", BatchSize: " + batchSize);
   });
   beforeEach(async () => {
-    this.contract = await ZKPrivatePairVoting.at(address);
+    this.contract = await ElectAnon.at(address);
     this.numLevel = await this.contract.getTreeLevel();
     this.extNullifier = await this.contract.getActiveExternalNullifier();
   });

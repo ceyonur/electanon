@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "./SemaphoreAst.sol";
-import {SimpleResultLib} from "../libs/tally/SimpleResultLib.sol";
+import {BordaCountLib} from "../libs/tally/BordaCountLib.sol";
 import {PermutationLib} from "../libs/PermutationLib.sol";
 
-contract ZKPrivatePairVotingAst is SemaphoreAst {
+contract ElectAnonAst is SemaphoreAst {
     event Proposed(
         uint256 indexed _id,
         address indexed _from,
@@ -189,7 +189,7 @@ contract ZKPrivatePairVotingAst is SemaphoreAst {
         );
         votedCount++;
         delete voteHashes[msg.sender];
-        SimpleResultLib.tally(proposalIdCt, _voteRank, voteCounts);
+        BordaCountLib.tally(proposalIdCt, _voteRank, voteCounts);
         if (votedCount == committedCount) {
             toCompletedState();
         }
@@ -210,7 +210,7 @@ contract ZKPrivatePairVotingAst is SemaphoreAst {
     //https://en.wikipedia.org/wiki/Ranked_pairs
     /* solhint-enable */
     function electionResult() external view atCompletedState returns (uint256) {
-        return SimpleResultLib.calculateResult(proposalIdCt, voteCounts);
+        return BordaCountLib.calculateResult(proposalIdCt, voteCounts);
     }
 
     function isEligibleProposer(address account) external view returns (bool) {

@@ -1,4 +1,4 @@
-const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVoting");
+const ElectAnon = artifacts.require("ElectAnon");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -11,14 +11,13 @@ chai.use(require("chai-string"));
 const PROPOSAL_LIFETIME = moment.duration(30, "days").asSeconds();
 const COMMIT_LIFETIME = moment.duration(30, "days").asSeconds();
 const REVEAL_LIFETIME = moment.duration(30, "days").asSeconds();
-const TREE_LEVEL = 20;
 const PASSWORD = "password";
 const {
   setupProposals,
   setupVoters,
   setupProposers,
   voteWithArrayPrivate,
-} = require("../../utils/helpers");
+} = require("./utils/helpers");
 
 const { genCircuit, passwordToSalt } = require("libsemaphore");
 
@@ -26,22 +25,21 @@ const path = require("path");
 const fs = require("fs");
 const circuitPath = path.join(
   __dirname,
-  "../../../circuits/semaphore/build/circuit.json"
+  "../circuits/semaphore/build/circuit.json"
 );
 const provingKeyPath = path.join(
   __dirname,
-  "../../../circuits/semaphore/build/proving_key.bin"
+  "../circuits/semaphore/build/proving_key.bin"
 );
 
 const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());
 const provingKey = fs.readFileSync(provingKeyPath);
 const circuit = genCircuit(cirDef);
 
-contract("ZKPrivatePairVoting election result", (accounts) => {
+contract("ElectAnon election result", (accounts) => {
   before(async () => {
     this.owner = accounts[0];
-    this.contract = await ZKPrivatePairVoting.new(
-      TREE_LEVEL,
+    this.contract = await ElectAnon.new(
       5,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,
@@ -50,10 +48,11 @@ contract("ZKPrivatePairVoting election result", (accounts) => {
         from: this.owner,
       }
     );
-    this.ids = await setupVoters(10, this.owner, this.contract);
+    let res = await setupVoters(10, this.owner, this.contract);
+    this.ids = res.ids;
+    this.idCommits = res.idCommits;
     await setupProposers(this.owner, accounts.slice(0, 5), this.contract);
     await setupProposals(this.contract, accounts, 5);
-    this.leaves = await this.contract.getLeaves();
     this.numLevel = await this.contract.getTreeLevel();
     this.extNullifier = await this.contract.getActiveExternalNullifier();
   });
@@ -66,7 +65,7 @@ contract("ZKPrivatePairVoting election result", (accounts) => {
         accounts[i],
         this.contract,
         this.ids[i],
-        this.leaves,
+        this.idCommits,
         this.numLevel,
         this.extNullifier,
         circuit,
@@ -82,7 +81,7 @@ contract("ZKPrivatePairVoting election result", (accounts) => {
         accounts[i],
         this.contract,
         this.ids[i],
-        this.leaves,
+        this.idCommits,
         this.numLevel,
         this.extNullifier,
         circuit,
@@ -98,7 +97,7 @@ contract("ZKPrivatePairVoting election result", (accounts) => {
         accounts[i],
         this.contract,
         this.ids[i],
-        this.leaves,
+        this.idCommits,
         this.numLevel,
         this.extNullifier,
         circuit,
@@ -114,7 +113,7 @@ contract("ZKPrivatePairVoting election result", (accounts) => {
         accounts[i],
         this.contract,
         this.ids[i],
-        this.leaves,
+        this.idCommits,
         this.numLevel,
         this.extNullifier,
         circuit,
@@ -130,7 +129,7 @@ contract("ZKPrivatePairVoting election result", (accounts) => {
         accounts[i],
         this.contract,
         this.ids[i],
-        this.leaves,
+        this.idCommits,
         this.numLevel,
         this.extNullifier,
         circuit,

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "./SemaphoreOptMF.sol";
-import {TidemanLib as TallyLib} from "../libs/tally/TidemanLib.sol";
-import {PermutationLib} from "../libs/PermutationLib.sol";
+import "./SemaphoreOpt.sol";
+import {BordaCountLib} from "./libs/tally/BordaCountLib.sol";
+import {PermutationLib} from "./libs/PermutationLib.sol";
 
-contract ZKPrivatePairVotingMF is SemaphoreOptMF {
+contract ElectAnon is SemaphoreOpt {
     event Proposed(
         uint256 indexed _id,
         address indexed _from,
@@ -22,6 +22,12 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         uint256 indexed _root
     );
 
+    event VoterIdCommitAdded(
+        address indexed _sender,
+        uint256 voterCommits,
+        uint256 indexed _root
+    );
+
     event VoterTreeReplaced(
         address indexed _sender,
         uint256[] voterCommits,
@@ -35,28 +41,25 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         Reveal,
         Completed
     }
-    States public state;
+    States state;
 
-    uint256 private constant MAX_PROPOSAL_CAP = 30;
-    uint256 private proposalIdCt;
-    uint256 private deadline;
-    uint256 public maxProposalCount;
-    uint256 public proposalLifetime;
-    uint256 public commitLifetime;
-    uint256 public revealLifetime;
+    uint256 constant MAX_PROPOSAL_CAP = 100;
+    uint256 proposalIdCt;
+    uint256 deadline;
+    uint256 maxProposalCount;
+    uint256 proposalLifetime;
+    uint256 commitLifetime;
+    uint256 revealLifetime;
 
-    string public question;
-    string public voterZKURL;
-
-    mapping(address => bool) private proposers;
-    uint256 public proposerCount;
-    mapping(uint256 => uint256) private voteCounts;
-    uint256 public committedCount;
-    uint256 public votedCount;
-    mapping(address => bytes32) private voteHashes;
+    mapping(address => bool) proposers;
+    uint256 proposerCount = 0;
+    mapping(uint256 => uint256) voteCounts;
+    uint256 public committedCount = 0;
+    uint256 public votedCount = 0;
+    mapping(address => bytes32) voteHashes;
 
     modifier deadlineNotPassed() {
-        require(block.number >= deadline, "State deadline is passed!");
+        require(block.timestamp >= deadline, "State deadline is passed!");
         _;
     }
 
@@ -66,12 +69,12 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     }
 
     modifier atState(States _state) {
-        require(state == _state, "Function cannot be called at this time.");
+        require(state == _state, "cannot be called.");
         _;
     }
 
     modifier atCompletedState() {
-        require(isCompletedState(), "Function cannot be called at this time.");
+        require(isCompletedState(), "election is completed.");
         _;
     }
 
@@ -88,10 +91,8 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         uint256 _maxProposalCount,
         uint256 _proposalLifetime,
         uint256 _commitLifetime,
-        uint256 _revealLifetime,
-        string memory _question,
-        string memory _voterZKURL
-    ) SemaphoreOptMF() {
+        uint256 _revealLifetime
+    ) SemaphoreOpt() {
         require(
             _maxProposalCount <= MAX_PROPOSAL_CAP,
             "maxProposalCount is too high!"
@@ -100,8 +101,6 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         proposalLifetime = _proposalLifetime;
         commitLifetime = _commitLifetime;
         revealLifetime = _revealLifetime;
-        question = _question;
-        voterZKURL = _voterZKURL;
         toState(States.Register);
     }
 
@@ -116,28 +115,28 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     function toProposalState() external onlyOwner {
         require(state == States.Register, "Cannot change state to Proposal!");
         toState(States.Proposal);
-        uint256 result = block.number + proposalLifetime;
+        uint256 result = block.timestamp + proposalLifetime;
         deadline = result;
         emit StateChanged(States.Register, States.Proposal, result);
     }
 
     function toCommitState() internal {
         toState(States.Commit);
-        uint256 result = block.number + commitLifetime;
+        uint256 result = block.timestamp + commitLifetime;
         deadline = result;
         emit StateChanged(States.Proposal, States.Commit, result);
     }
 
     function toRevealState() internal {
         toState(States.Reveal);
-        uint256 result = block.number + revealLifetime;
+        uint256 result = block.timestamp + revealLifetime;
         deadline = result;
         emit StateChanged(States.Commit, States.Reveal, result);
     }
 
     function toCompletedState() internal {
         toState(States.Completed);
-        emit StateChanged(States.Reveal, States.Completed, block.number);
+        emit StateChanged(States.Reveal, States.Completed, block.timestamp);
     }
 
     function addProposers(address[] calldata proposerList)
@@ -152,25 +151,30 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         emit ProposersAdded(msg.sender, proposerList);
     }
 
-    function addVoters(
-        uint256[TREE_SIZES] calldata _leaves,
-        uint256 _root,
-        uint256[2] calldata proofA,
-        uint256[2][2] calldata proofB,
-        uint256[2] calldata proofC
-    ) external atState(States.Register) onlyOwner {
-        insertTree(_leaves, _root, proofA, proofB, proofC);
+    function addVoters(uint256[] calldata _identityCommitments, uint256 _root)
+        external
+        atState(States.Register)
+        onlyOwner
+    {
+        insertLeaves(_identityCommitments, _root);
+        emit VoterIdCommitsAdded(msg.sender, _identityCommitments, _root);
+    }
+
+    function addVoter(uint256 _identityCommitment, uint256 _root)
+        external
+        atState(States.Register)
+        onlyOwner
+    {
+        insertLeaf(_identityCommitment, _root);
+        emit VoterIdCommitAdded(msg.sender, _identityCommitment, _root);
     }
 
     function replaceIdCommitments(
-        uint256 _index,
-        uint256[TREE_SIZES] calldata _leaves,
-        uint256 _root,
-        uint256[2] calldata proofA,
-        uint256[2][2] calldata proofB,
-        uint256[2] calldata proofC
+        uint256[] calldata _identityCommitments,
+        uint256 _root
     ) external atState(States.Register) onlyOwner {
-        replaceTree(_index, _leaves, _root, proofA, proofB, proofC);
+        replaceTree(_identityCommitments, _root);
+        emit VoterTreeReplaced(msg.sender, _identityCommitments, _root);
     }
 
     function propose(string calldata _proposal)
@@ -192,15 +196,14 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
 
     function commitVote(
         bytes32 _secretHash,
-        uint256 _treeIndex,
         uint256[8] calldata _proof,
         uint256 _nullifiersHash
     ) external timedTransitions atState(States.Commit) {
-        require(_secretHash != 0, "secretHash cannot be 0");
-        broadcastSignal(_secretHash, _proof, _nullifiersHash, _treeIndex);
+        require(_secretHash != 0, "secret hash cannot be 0");
+        broadcastSignal(_secretHash, _proof, _nullifiersHash);
         voteHashes[msg.sender] = _secretHash;
         committedCount++;
-        if (committedCount == getForestSize()) {
+        if (committedCount == getLeavesNum()) {
             toRevealState();
         }
     }
@@ -219,9 +222,11 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
                 voteHashes[msg.sender],
             "Wrong credentials"
         );
-        voteCounts[_voteRank]++;
+        uint256 ptrProposalIdCt = proposalIdCt;
+        require(_voteRank < fact(ptrProposalIdCt), "invalid vote rank");
         votedCount++;
         delete voteHashes[msg.sender];
+        BordaCountLib.tally(ptrProposalIdCt, _voteRank, voteCounts);
         if (votedCount == committedCount) {
             toCompletedState();
         }
@@ -242,8 +247,7 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     //https://en.wikipedia.org/wiki/Ranked_pairs
     /* solhint-enable */
     function electionResult() external view atCompletedState returns (uint256) {
-        uint256 matrixSize = proposalIdCt;
-        return TallyLib.calculateResult(matrixSize, voteCounts);
+        return BordaCountLib.calculateResult(proposalIdCt, voteCounts);
     }
 
     function isEligibleProposer(address account) external view returns (bool) {
@@ -268,7 +272,13 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         return "";
     }
 
-    function getRank(uint256[] calldata vec) external pure returns (uint256) {
+    function getRank(uint256[] calldata vec) external view returns (uint256) {
+        require(
+            isCommitState() || isRevealState() || isCompletedState(),
+            "not before commit state"
+        );
+        uint256 d = proposalIdCt;
+        require(vec.length <= d, "given vector length is too much");
         uint256 n = vec.length;
         uint256[] memory v = new uint256[](n);
         uint256[] memory inv = new uint256[](n);
@@ -281,8 +291,21 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
         return r;
     }
 
-    function getVoterZKURL() external view returns (string memory) {
-        return voterZKURL;
+    function fact(uint256 n) private pure returns (uint256) {
+        uint256 total = 1;
+        for (uint256 i = 1; i <= n; i++) {
+            total = total * i;
+        }
+        return total;
+    }
+
+    function unrank(uint256 rank) external view returns (uint256[] memory vec) {
+        require(
+            isCommitState() || isRevealState() || isCompletedState(),
+            "not before commit state"
+        );
+        uint256[] memory v = PermutationLib.getPermutation(rank, proposalIdCt);
+        return v;
     }
 
     /// PRIVATE CODE
@@ -318,15 +341,15 @@ contract ZKPrivatePairVotingMF is SemaphoreOptMF {
     }
 
     function changableToCommit() private view returns (bool) {
-        return state == States.Proposal && block.number >= deadline;
+        return state == States.Proposal && block.timestamp >= deadline;
     }
 
     function changableToReveal() private view returns (bool) {
-        return state == States.Commit && block.number >= deadline;
+        return state == States.Commit && block.timestamp >= deadline;
     }
 
     function changableToCompleted() private view returns (bool) {
-        return state == States.Reveal && block.number >= deadline;
+        return state == States.Reveal && block.timestamp >= deadline;
     }
 
     function currentProposals() public view returns (uint256[] memory) {

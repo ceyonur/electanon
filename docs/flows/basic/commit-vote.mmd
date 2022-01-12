@@ -4,26 +4,31 @@ rect rgb(255, 0, 0)
 note left of Voter: In Commit State
 end
 participant SC as SmartContract
+Voter->>Blockchain: filterProposedEvents()
+Blockchain-->>Voter: CIDs, Proposals
+Voter->>Voter: decidePreferences(CIDs, Proposals): PreferenceList
+Note over Voter,Voter: nc is the total candidate count
+Voter->>Voter: getRank(PreferenceList, nc): VID
+Voter->>Voter: genVoteHash(VID, VSk): VH
+Voter->>Voter: store(VID, VSk)
 Voter->>Blockchain: filterVoterAddedEvents()
 Blockchain-->>Voter: IDCList
 Voter->>SC: getTreeLevel()
 SC-->>Voter: TreeLevel
+Voter->>Voter: genTree(IDCList, TreeLevel): MerkleTree
+Note over Voter,Voter: Voter uses own stored IDC
+Voter->>Voter: genMerkleProof(MerkleTree, IDC): MerkleProof
+Voter ->> IPFS: getFiles(URL)
+IPFS -->> Voter: Circ, ProveK
 Voter->>SC: getExtNullifier()
 SC-->>Voter: ExtN
-Voter->>Voter: genTree(IDCList): MerkleTree
-Note over Voter,Voter: Voter uses own stored IDC
-Voter->>Voter: constructMerkleProof(MerkleTree, IDC): MerkleProof
-Voter->>Voter: genVoteHash(VID, VSk): VH
-Voter->>Voter: store(VID, VSk)
-Note over Voter: MPI is a component of MerkleProof
-Voter->>Voter: genNullifierHash(ExtN, ID, MPI): NH
 Voter ->>Voter: sign(VH, PrivK): Signature
-Voter ->> IPFS: getFiles(URL)
-IPFS -->> Voter: CirC, ProveKey
-Voter->>Voter: genWitness(CirC, VH, ID, MerkleProof, TreeLevel, ExtN, Signature): Witness
-Voter->>Voter: genProof(Witness, ProveKey): Proof
-Voter->>SC: commitVote(VH, Proof, NH)
-SC->>SC: verifyProof(VH, Proof, NH, MRS, ExtN)
+Voter->>Voter: genWitness(Circ, VH, ID, MerkleProof, ExtN, Signature): Witness, MRC, NH
+Voter->>Voter: genProof(Witness, ProveK): P
+Note over Voter: MPI is a component of MerkleProof. ID is the voters own stored ID.
+Voter->>Voter: genNullifierHash(ExtN, ID, MPI): NH
+Voter->>SC: commitVote(VH, NH, P)
+SC->>SC: verifyProof(VH, NH, P, ExtN, MRS)
 alt Valid Proof && NH is not registered before
   SC->>SC:store(VoterAddress => VH, NH)
 else

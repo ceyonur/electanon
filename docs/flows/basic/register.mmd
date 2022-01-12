@@ -1,7 +1,7 @@
 sequenceDiagram
 participant Voter as Voter
-participant Proposer
 participant EC as ElectionAuthority
+participant Proposer
 participant SC as Smart Contract
 participant BC as Blockchain
 rect rgb(255, 0, 0)
@@ -17,6 +17,10 @@ rect rgb(0, 255, 153)
 end
     EC->>EC: store(IDC)
 end
+Note over EC: IDCList contains all Identity Commitments <br> stored by the ElectionAuthority
+EC->>EC: genMerkleTreeRoot(IDCList, TreeLevel): MRS
+EC->>SC: addVoters(IDCList, MRS)
+SC->>BC: emit VotersAddedEvent(IDCList, MRS)
 loop For each Proposer
 rect rgb(0, 255, 153)
     Note right of Proposer: Secure Channel
@@ -32,7 +36,3 @@ alt Proposers Not Added Before
 else
     SC->>EC: fail
 end
-Note over EC: IDCList contains all Identity Commitments <br> stored by the ElectionAuthority
-EC->>EC: genMerkleTreeRoot(IDCList): MRS
-EC->>SC: addVoters(IDCList, MRS)
-SC->>BC: emit VotersAddedEvent(IDCList, MRS)

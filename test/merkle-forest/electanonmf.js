@@ -1,4 +1,4 @@
-const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVotingMF");
+const ElectAnon = artifacts.require("ElectAnonMF");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -17,7 +17,7 @@ const {
   setupProposals,
   setupZKParamsPrivate,
   voteWithArrayPrivate,
-} = require("../../utils/helpers");
+} = require("../utils/helpers");
 
 const {
   genIdentity,
@@ -46,24 +46,15 @@ const provingKeyPath = path.join(
   "../../circuits/semaphore/build/proving_key.bin"
 );
 
-const { initialize } = require("zokrates-js/node");
-
-const verificationKeyFile = path.join(
-  __dirname,
-  "../../circuits/zk-mt/build/verification.key"
-);
-
-const proofFile = path.join(__dirname, "../../circuits/zk-mt/build/proof.json");
-
 const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());
 const provingKey = fs.readFileSync(provingKeyPath);
 const circuit = genCircuit(cirDef);
 
-contract("ZKPrivatePairVotingMF", (accounts) => {
+contract("ElectAnonMF", (accounts) => {
   beforeEach(async () => {
     this.initialManagers = accounts.slice(1, 4);
     this.owner = accounts[0];
-    this.contract = await ZKPrivatePairVoting.new(
+    this.contract = await ElectAnon.new(
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,
       COMMIT_LIFETIME,
@@ -367,10 +358,10 @@ contract("ZKPrivatePairVotingMF", (accounts) => {
     );
   });
 });
-contract("ZKPrivatePairVoting commit", (accounts) => {
+contract("ElectAnon commit", (accounts) => {
   before(async () => {
     this.owner = accounts[0];
-    this.contract = await ZKPrivatePairVoting.new(
+    this.contract = await ElectAnon.new(
       TREE_LEVEL,
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,
@@ -468,10 +459,10 @@ contract("ZKPrivatePairVoting commit", (accounts) => {
   });
 });
 
-contract("ZKPrivatePairVoting reveal", (accounts) => {
+contract("ElectAnon reveal", (accounts) => {
   before(async () => {
     this.owner = accounts[0];
-    this.contract = await ZKPrivatePairVoting.new(
+    this.contract = await ElectAnon.new(
       TREE_LEVEL,
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,
@@ -581,10 +572,10 @@ contract("ZKPrivatePairVoting reveal", (accounts) => {
   });
 });
 
-contract("ZKPrivatePairVoting result", (accounts) => {
+contract("ElectAnon result", (accounts) => {
   before(async () => {
     this.owner = accounts[0];
-    this.contract = await ZKPrivatePairVoting.new(
+    this.contract = await ElectAnon.new(
       TREE_LEVEL,
       MAX_PROPOSAL_COUNT,
       PROPOSAL_LIFETIME,

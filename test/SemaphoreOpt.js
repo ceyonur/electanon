@@ -147,15 +147,15 @@ contract("signal broadcasts", (accounts) => {
   // Load circuit, proving key, and verifying key
   const circuitPath = path.join(
     __dirname,
-    "../../../circuits/semaphore/build/circuit.json"
+    "../circuits/semaphore/build/circuit.json"
   );
   const provingKeyPath = path.join(
     __dirname,
-    "../../../circuits/semaphore/build/proving_key.bin"
+    "../circuits/semaphore/build/proving_key.bin"
   );
   const verifyingKeyPath = path.join(
     __dirname,
-    "../../../circuits/semaphore/build/verification_key.json"
+    "../circuits/semaphore/build/verification_key.json"
   );
 
   const cirDef = JSON.parse(fs.readFileSync(circuitPath).toString());

@@ -1,4 +1,4 @@
-const ZKPrivatePairVoting = artifacts.require("ZKPrivatePairVoting");
+const ElectAnon = artifacts.require("ElectAnon");
 
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
@@ -21,7 +21,7 @@ contract("ZK Private PairVoting", (accounts) => {
     );
   });
   beforeEach(async () => {
-    this.contract = await ZKPrivatePairVoting.at(address);
+    this.contract = await ElectAnon.at(address);
   });
 
   it("should reveal and vote", async () => {
