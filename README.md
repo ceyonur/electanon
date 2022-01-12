@@ -1,6 +1,6 @@
-# gentract
+# ElectAnon
 
-Smart Contract for Genesis Block
+A BLOCKCHAIN-BASED, ANONYMOUS, ROBUST AND SCALABLE RANKED-CHOICE VOTING PROTOCOL
 
 ## Compile
 
