@@ -16,17 +16,15 @@ Blockchain-->>Voter: IDCList
 Voter->>SC: getTreeLevel()
 SC-->>Voter: TreeLevel
 Voter->>Voter: genTree(IDCList, TreeLevel): MerkleTree
-Note over Voter,Voter: Voter uses own stored IDC
 Voter->>Voter: genMerkleProof(MerkleTree, IDC): MerkleProof
 Voter ->> IPFS: getFiles(URL)
 IPFS -->> Voter: Circ, ProveK
 Voter->>SC: getExtNullifier()
 SC-->>Voter: ExtN
-Voter ->>Voter: sign(VH, PrivK): Signature
-Voter->>Voter: genWitness(Circ, VH, ID, MerkleProof, ExtN, Signature): Witness, MRC, NH
+Voter ->>Voter: sign(VH, ID): Signature
+Voter->>Voter: genWitness(Circ, VH, ID, MerkleProof, ExtN, Signature): Witness: MRC, NH
 Voter->>Voter: genProof(Witness, ProveK): P
-Note over Voter: MPI is a component of MerkleProof. ID is the voters own stored ID.
-Voter->>Voter: genNullifierHash(ExtN, ID, MPI): NH
+Voter->>Voter: genNullifierHash(ExtN, ID, MerkleProof): NH
 Voter->>SC: commitVote(VH, NH, P)
 SC->>SC: verifyProof(VH, NH, P, ExtN, MRS)
 alt Valid Proof && NH is not registered before

@@ -11,9 +11,8 @@ Note over Voter, SC: nc is the candidate count
 alt 0 < VoteID < nc!-1 AND <br> hash(VID,VSk) == VoterAddress->VH
 SC->>SC: delete(VoterAddress->VH)
 
-Note over SC, TallyLib: TallyState is the state storage
-SC->>TallyLib: tally(CandidateCount, VID, TallyState)
-TallyLib ->> TallyLib: changeState(TallyState)
+SC->>TallyLib: tally(CandidateCount, VID, TallyStorage)
+TallyLib ->> TallyLib: changeState(TallyStorage)
 else
 SC->>Voter: fail
 end

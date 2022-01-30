@@ -3,7 +3,6 @@ rect rgb(255, 0, 0)
 note left of EA: In Setup State
 end
 participant EA as ElectionAuthority
-Note over EA: Perpetual Power of Tau is completed. Params are available.
 EA ->> EA: genZK(Params, Circ): VerifyK, ProveK
 EA ->> IPFS: store(Circ, ProveK)
 IPFS -->> EA: URL

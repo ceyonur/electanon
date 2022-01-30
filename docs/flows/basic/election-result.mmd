@@ -11,7 +11,7 @@ participant TallyLib
 
 User->>SC: electionResult()
 Note over SC, TallyLib: nc is the candidate count
-SC ->> TallyLib: calculateResult(nc, TallyState);
+SC ->> TallyLib: calculateResult(nc, TallyStorage);
 Note over TallyLib, SC: WinnerID is in form of <br> candidateID
 TallyLib -->>SC: WinnerID
 SC -->>User: WinnerID
