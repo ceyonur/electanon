@@ -4,12 +4,17 @@ A BLOCKCHAIN-BASED, ANONYMOUS, ROBUST AND SCALABLE RANKED-CHOICE VOTING PROTOCOL
 
 ## Compile
 
-Follow https://semaphore.appliedzkp.org/quickstart.html to generate circuits & verifier.sol. Put circuit.json & proving_key.bin & verification_key.json to circuits/semaphore/build/ folder, and verifier.sol under contracts/semaphore
+Follow https://semaphore.appliedzkp.org/docs/V1/quickstart to generate circuits & verifier.sol. Put `circuit.json` & `proving_key.bin` & `verification_key.json` and `verifier.sol` under `circuits/semaphore/build/` folder.
 
 ## Tests
 
-Run tests with --no-compile for pre-compiled verifier.sol. For example:
+These tests can be run with `npx hardhat test`:
 
-```
-npx hardhat test test/semaphore/FixedVerifier.js --no-compile
-```
+- `electanon.js`
+- `electanonslow.js`
+- `SemaphoreOpt.js`
+- `tideman.js`
+- `gasanalysis/electanon.js`
+- `gasanalysis/pairvoting.js`
+
+A sample run: `npx hardhat test test/electanon.js`

@@ -35,7 +35,7 @@
     "ethers": "^5.4.7",
     "hardhat": "^2.6.4",
     "hardhat-gas-reporter": "^1.0.4",
-    "libsemaphore": "file:../libsemaphore",
+    "libsemaphore": "git+https://github.com/ceyonur/libsemaphore",
     "mocha": "^8.4.0",
     "module-alias": "^2.2.2",
     "moment": "^2.29.1",
