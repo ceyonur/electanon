@@ -61,7 +61,7 @@ module.exports = {
       // See its defaults
       allowUnlimitedContractSize: true,
       accounts: {
-        count: 100,
+        count: 250,
       },
     },
   },

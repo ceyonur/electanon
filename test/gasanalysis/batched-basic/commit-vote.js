@@ -36,7 +36,7 @@ const round = Number(process.env.VROUND);
 const batchSize = Number(process.env.BSIZE) || 10;
 const address = String(process.env.ADDRESS) || "";
 
-const treeJson = require("../../../tree.json");
+const treeJson = require("../../scripts/tree.json");
 
 contract("ZK Private PairVoting", (accounts) => {
   before(() => {

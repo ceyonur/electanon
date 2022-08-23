@@ -10,16 +10,26 @@ library TidemanLib {
     function tally(
         uint256 candidateCount,
         uint256 voteRank,
-        mapping(uint256 => uint256) storage voteCounts
+        mapping(uint256 => uint256) storage voteCounts,
+        uint256[] storage rankIDs
     ) internal {
+        if (voteCounts[voteRank] == 0) {
+            rankIDs.push(voteRank);
+        }
+
         voteCounts[voteRank]++;
     }
 
     function calculateResult(
         uint256 candidateCount,
-        mapping(uint256 => uint256) storage voteCounts
+        mapping(uint256 => uint256) storage voteCounts,
+        uint256[] storage rankIDs
     ) internal view returns (uint256) {
-        uint256[4][] memory prefs = _getPrefPairs(candidateCount, voteCounts);
+        uint256[4][] memory prefs = _getPrefPairs(
+            candidateCount,
+            voteCounts,
+            rankIDs
+        );
         bool[][] memory locked = _getLockedPairs(candidateCount, prefs);
         for (uint256 i = 0; i < candidateCount; i++) {
             bool source = true;
@@ -59,17 +69,23 @@ library TidemanLib {
 
     function _getPrefPairs(
         uint256 matrixSize,
-        mapping(uint256 => uint256) storage voteCounts
+        mapping(uint256 => uint256) storage voteCounts,
+        uint256[] storage rankIDs
     ) private view returns (uint256[4][] memory) {
         uint256 prefLength = (matrixSize * (matrixSize - 1)) / 2;
         uint256[4][] memory prefs = new uint256[4][](prefLength);
-        for (uint256 j = 0; j < matrixSize; j++) {
-            uint256 votes = voteCounts[j];
+        for (uint256 j = 0; j < rankIDs.length; j++) {
+            uint256 rank = rankIDs[j];
+            uint256 votes = voteCounts[rank];
             if (votes == 0) {
                 continue;
             }
             uint256 counter = 0;
-            uint256[] memory v = PermutationLib.getPermutation(j, matrixSize);
+            uint256[] memory v = PermutationLib.getPermutation(
+                rank,
+                matrixSize
+            );
+
             for (uint256 i = 0; i < matrixSize; i++) {
                 for (uint256 k = i + 1; k < matrixSize; k++) {
                     if (prefs[counter][0] == 0) {

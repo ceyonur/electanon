@@ -32,6 +32,7 @@ contract PairVoting is Ownable {
 
     mapping(address => uint256) managers;
     mapping(uint256 => uint256) voteCounts;
+    uint256[] ranks;
 
     modifier onlyManager() {
         require(
@@ -138,11 +139,10 @@ contract PairVoting is Ownable {
         atState(States.Proposal)
         notAlreadyProposed
     {
-        proposalIdCt++;
+        uint256 ptrProposalIdCt = proposalIdCt++ + 1;
         managers[msg.sender] = 2;
         emit Proposed(proposalIdCt, msg.sender, _platformName);
-
-        if (proposalIdCt >= maxProposalCount) {
+        if (ptrProposalIdCt >= maxProposalCount) {
             toVotingState();
         }
     }
@@ -156,7 +156,7 @@ contract PairVoting is Ownable {
     {
         managers[msg.sender] = 1;
         voterCount++;
-        TallyLib.tally(proposalIdCt, rank, voteCounts);
+        TallyLib.tally(proposalIdCt, rank, voteCounts, ranks);
         if (voterCount == managerCount) {
             toCompletedState();
         }
@@ -168,7 +168,7 @@ contract PairVoting is Ownable {
     /* solhint-enable */
     function electionResult() external view atCompletedState returns (uint256) {
         uint256 matrixSize = proposalIdCt;
-        return TallyLib.calculateResult(matrixSize, voteCounts);
+        return TallyLib.calculateResult(matrixSize, voteCounts, ranks);
     }
 
     function isManager(address account) public view returns (bool) {

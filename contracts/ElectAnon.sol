@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "./SemaphoreOpt.sol";
-import {BordaCountLib} from "./libs/tally/BordaCountLib.sol";
+import {TidemanLib as TallyLib} from "./libs/tally/TidemanLib.sol";
 import {PermutationLib} from "./libs/PermutationLib.sol";
 
 contract ElectAnon is SemaphoreOpt {
@@ -57,6 +57,7 @@ contract ElectAnon is SemaphoreOpt {
     uint256 public committedCount = 0;
     uint256 public votedCount = 0;
     mapping(address => bytes32) voteHashes;
+    uint256[] rankIDs;
 
     modifier deadlineNotPassed() {
         require(block.timestamp >= deadline, "State deadline is passed!");
@@ -226,7 +227,7 @@ contract ElectAnon is SemaphoreOpt {
         require(_voteRank < fact(ptrProposalIdCt), "invalid vote rank");
         votedCount++;
         delete voteHashes[msg.sender];
-        BordaCountLib.tally(ptrProposalIdCt, _voteRank, voteCounts);
+        TallyLib.tally(ptrProposalIdCt, _voteRank, voteCounts, rankIDs);
         if (votedCount == committedCount) {
             toCompletedState();
         }
@@ -247,7 +248,7 @@ contract ElectAnon is SemaphoreOpt {
     //https://en.wikipedia.org/wiki/Ranked_pairs
     /* solhint-enable */
     function electionResult() external view atCompletedState returns (uint256) {
-        return BordaCountLib.calculateResult(proposalIdCt, voteCounts);
+        return TallyLib.calculateResult(proposalIdCt, voteCounts, rankIDs);
     }
 
     function isEligibleProposer(address account) external view returns (bool) {

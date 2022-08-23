@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "./SemaphoreOptMF.sol";
-import {TidemanLib as TallyLib} from "../libs/tally/TidemanLib.sol";
+import {BordaCountLib as TallyLib} from "../libs/tally/BordaCountLib.sol";
 import {PermutationLib} from "../libs/PermutationLib.sol";
 
 contract ElectAnonMF is SemaphoreOptMF {
