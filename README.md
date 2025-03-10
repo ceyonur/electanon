@@ -1,5 +1,7 @@
 # ElectAnon
 
+zazazq
+
 A BLOCKCHAIN-BASED, ANONYMOUS, ROBUST AND SCALABLE RANKED-CHOICE VOTING PROTOCOL
 
 ElectAnon arXiv link: https://arxiv.org/abs/2204.00057
